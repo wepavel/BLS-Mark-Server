@@ -26,7 +26,7 @@ async def download_file(key: int) -> Device:
 
 
 @router.get('/service-heartbeat/{ping}')
-async def download_file(ping: str) -> PlainTextResponse:
+async def ping(ping: str) -> PlainTextResponse:
     if ping == 'ping':
         return PlainTextResponse('pong')
 
