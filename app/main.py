@@ -1,7 +1,9 @@
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from pydantic import BaseModel
 import uvicorn
 
 from app.api import api_router
@@ -12,8 +14,7 @@ from app.core.exceptions import exception_handler
 
 # from app.core.logging import UvicornAccessLogFormatter, UvicornCommonLogFormatter
 from app.core.openapi import custom_openapi
-from pydantic import BaseModel
-import asyncio
+
 
 class Message(BaseModel):
     content: str

@@ -7,4 +7,4 @@
 #     UserUpdate as UserUpdate,
 # )
 # from .user_status import UserStatus as UserStatus, statuses as statuses
-from .device import Device as Device
+from .device import Device as Device, DeviceList as DeviceList
