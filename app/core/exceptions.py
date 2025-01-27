@@ -51,6 +51,7 @@ class ErrorCode(Enum):
     ValidationError = ErrorResponse(code=4400, msg='Validation error')
     #  4401-4500: General Validation Errors
     WrongFormat = ErrorResponse(code=4411, msg='Wrong format')
+    DMCodeValidationError = ErrorResponse(code=4412, msg='DMCode validation error')
     #  4501 - 4508: API and Request Errors
     Unauthorized = ErrorResponse(
         code=4501, msg='Sorry, you are not allowed to access this service: UnauthorizedRequest'

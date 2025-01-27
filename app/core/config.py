@@ -1,7 +1,11 @@
 import os
 
+from pydantic import PostgresDsn
 from pydantic import ValidationError
+from pydantic import field_validator
+from pydantic import ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Any
 
 
 class Settings(BaseSettings):
@@ -24,6 +28,24 @@ class Settings(BaseSettings):
     # LOG_PATH: str = os.getenv('LOG_PATH', './logs')
 
     SESSION_EXPIRE_MINUTES: int = 60 * 24 * 365  # 1 year
+
+    POSTGRES_SERVER: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
+    SQLALCHEMY_DATABASE_URI: PostgresDsn | None = None
+
+    @field_validator('SQLALCHEMY_DATABASE_URI', mode='before')
+    def assemble_db_connection(cls, v: str | None, values: ValidationInfo) -> Any:
+        if isinstance(v, str):
+            return v
+        return PostgresDsn.build(
+            scheme='postgresql',
+            username=values.data.get('POSTGRES_USER'),
+            password=values.data.get('POSTGRES_PASSWORD'),
+            host=values.data.get('POSTGRES_SERVER'),
+            path=f"{values.data.get('POSTGRES_DB') or ''}",
+        ).unicode_string()
 
 
 try:

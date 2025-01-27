@@ -7,4 +7,7 @@
 #     UserUpdate as UserUpdate,
 # )
 # from .user_status import UserStatus as UserStatus, statuses as statuses
-from .device import Device as Device, DeviceList as DeviceList
+from .device import Device
+from .dmcode import DataMatrixCode, DataMatrixCodePublic, DataMatrixCodeCreate
+from .country import Country, CountryEnum
+

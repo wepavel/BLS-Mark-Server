@@ -7,7 +7,7 @@ from fastapi import WebSocket
 from sqlmodel import Field, SQLModel
 
 from app.core.logging import logger
-from app.models import Device, DeviceList
+from app.models import Device
 import random
 
 class NotificationType(str, Enum):
@@ -19,7 +19,7 @@ class NotificationType(str, Enum):
 
 class EventData(SQLModel, table=False):
     user_id: str
-    message: str | dict[str, Any] | list[dict[str, Any]] | DeviceList
+    message: str | dict[str, Any] | list[dict[str, Any]]
     notification_type: NotificationType = Field(default=NotificationType.SUCCESS)
     info: dict | None = None
 
@@ -53,6 +53,24 @@ class WSConnectionManager:
         logger.info(f'Websocket closed: session_id={client_id}')
 
     @staticmethod
+    async def receive_message(websocket: WebSocket):
+        try:
+            data = await websocket.receive_json()
+            return data
+        except Exception as e:
+            logger.error(f"Error receiving message: {e}")
+            return None
+
+    @staticmethod
+    async def handle_message(client_id: str, message: dict):
+        message_type = message.get('type')
+
+        if message_type == 'heartbeat':
+            await send_personal_heartbeat_message(client_id)
+        else:
+            logger.warning(f"Unknown message type: {message_type}")
+
+    @staticmethod
     async def send_personal_message(websocket: WebSocket, event: Event):
         await websocket.send_json(event.as_ws_dict())
 
@@ -78,13 +96,21 @@ class WSConnectionManager:
 ws_eventbus = WSConnectionManager()
 
 
-async def send_personal_heartbeat_message(client_id: str, msg: str):
+async def send_personal_heartbeat_message(client_id: str):
+    devices = [
+        Device(name='printer', ping=random.choice([True, False]), heartbeat=random.choice([True, False])),
+        Device(name='scanner', ping=random.choice([True, False]), heartbeat=random.choice([True, False])),
+        Device(name='plc', ping=random.choice([True, False]), heartbeat=random.choice([True, False])),
+    ]
+
+    device_dicts = [device.model_dump() for device in devices]
+
     broadcast_event = Event(
-        name='broadcast_message',
-        data=EventData(
-            user_id=client_id, message=f'Client {client_id} says: {msg}', notification_type=NotificationType.SUCCESS
-        ),
+        name='heartbeat',
+        data=EventData(user_id=client_id, message=device_dicts, notification_type=NotificationType.SUCCESS),
     )
+    event = Event.model_validate_json(broadcast_event.model_dump_json())
+    await ws_eventbus.broadcast(event)
 
 
 async def send_broadcast_heartbeat_message():

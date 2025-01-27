@@ -46,7 +46,12 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         async with ws_eventbus.connect_manager(websocket, client_id):
             while True:
                 try:
-                    data = await websocket.receive_text()
+                    data = await ws_eventbus.receive_message(websocket)
+                    if data is None:
+                        break
+
+                    await ws_eventbus.handle_message(client_id, data)
+
                     await ws_eventbus.send_personal_message(websocket, {'message': f'You sent: {data}'})
                     await ws_eventbus.broadcast({'message': f'Client {client_id} says: {data}'})
                 except WebSocketDisconnect:
