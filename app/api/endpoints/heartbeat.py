@@ -52,8 +52,6 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
                     await ws_eventbus.handle_message(client_id, data)
 
-                    await ws_eventbus.send_personal_message(websocket, {'message': f'You sent: {data}'})
-                    await ws_eventbus.broadcast({'message': f'Client {client_id} says: {data}'})
                 except WebSocketDisconnect:
                     # Клиент отключился, выходим из цикла
                     break

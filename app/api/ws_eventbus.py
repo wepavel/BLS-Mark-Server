@@ -71,8 +71,18 @@ class WSConnectionManager:
             logger.warning(f"Unknown message type: {message_type}")
 
     @staticmethod
-    async def send_personal_message(websocket: WebSocket, event: Event):
+    async def send_personal_message_static(websocket: WebSocket, event: Event):
         await websocket.send_json(event.as_ws_dict())
+
+    async def send_personal_message(self, client_id: str, event: Event):
+        websocket = self.active_connections.get(client_id)
+        if websocket:
+            try:
+                await websocket.send_json(event.as_ws_dict())
+            except Exception as e:
+                logger.error(f"Error sending message to client {client_id}: {e}")
+        else:
+            logger.warning(f"Attempted to send message to non-existent client: {client_id}")
 
     async def broadcast(self, event: Event):
         if not self.active_connections:
@@ -110,7 +120,8 @@ async def send_personal_heartbeat_message(client_id: str):
         data=EventData(user_id=client_id, message=device_dicts, notification_type=NotificationType.SUCCESS),
     )
     event = Event.model_validate_json(broadcast_event.model_dump_json())
-    await ws_eventbus.broadcast(event)
+    # await ws_eventbus.send_personal_message(client_id, event)
+    await ws_eventbus.send_personal_message(client_id, event)
 
 
 async def send_broadcast_heartbeat_message():
