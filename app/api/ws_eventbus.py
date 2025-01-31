@@ -7,7 +7,7 @@ from fastapi import WebSocket
 from sqlmodel import Field, SQLModel
 
 from app.core.logging import logger
-from app.models import Device
+from app.models import Device, DataMatrixCodePublic, DataMatrixCode
 import random
 
 class NotificationType(str, Enum):
@@ -153,3 +153,17 @@ async def broadcast_msg(
         data=EventData(user_id='broadcast', message=msg, notification_type=notification_type),
     )
     await ws_eventbus.broadcast(event)
+
+
+async def send_dmcode(client_id: str, dmcode: DataMatrixCode):
+    dmcode_public = dmcode.to_public_data_matrix_code()
+
+    # device_dicts = [device.model_dump() for device in devices]
+
+    broadcast_event = Event(
+        name='heartbeat',
+        data=EventData(user_id=client_id, message=dmcode_public.model_dump(), notification_type=NotificationType.SUCCESS),
+    )
+    event = Event.model_validate_json(broadcast_event.model_dump_json())
+    # await ws_eventbus.send_personal_message(client_id, event)
+    await ws_eventbus.send_personal_message(client_id, event)

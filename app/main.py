@@ -14,7 +14,7 @@ from app.core.exceptions import exception_handler
 
 # from app.core.logging import UvicornAccessLogFormatter, UvicornCommonLogFormatter
 from app.core.openapi import custom_openapi
-
+from starlette.middleware.cors import CORSMiddleware
 
 class Message(BaseModel):
     content: str
@@ -101,13 +101,13 @@ exception_handler(app)
 # for origin in settings.BACKEND_CORS_ORIGINS: print(str(origin).rstrip('/'))
 
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     # allow_origins=[str(origin).rstrip('/') for origin in settings.BACKEND_CORS_ORIGINS],
-#     allow_credentials=True,
-#     allow_methods=['*'],
-#     allow_headers=['*'],
-# )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=True,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 

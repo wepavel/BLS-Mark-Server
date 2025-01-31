@@ -11,7 +11,7 @@ from fastapi import APIRouter
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.core.utils import validate_data_matrix, to_public_data_matrix_code
+from app.core.utils import validate_data_matrix
 from app import crud
 from app import models
 
@@ -20,7 +20,7 @@ router = APIRouter()
 
 
 @router.post('/add-dmcode/{dmcode}')
-async def add_dmcode(*, dm_code: str,db: AsyncSession = Depends(deps.get_db)) -> DataMatrixCodePublic:
+async def add_dmcode(*, dm_code: str, db: AsyncSession = Depends(deps.get_db)) -> DataMatrixCodePublic:
     """
     Add new dmcode to system
     """
@@ -28,7 +28,7 @@ async def add_dmcode(*, dm_code: str,db: AsyncSession = Depends(deps.get_db)) ->
     if dm_attrs is None:
         raise EXC(ErrorCode.DMCodeValidationError)
 
-    return to_public_data_matrix_code(dm_attrs)
+    return dm_attrs.to_public_data_matrix_code()
 
 @router.get('/device-states/{dm_code}')
 async def download_file(dm_code: str) -> DataMatrixCodePublic:

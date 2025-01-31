@@ -185,15 +185,4 @@ def normalize_gs(input_str: str) -> str:
     return input_str.replace(chr(29), "<GS>")
 
 
-def to_public_data_matrix_code(dm_code: DataMatrixCode) -> DataMatrixCodePublic:
-    return DataMatrixCodePublic(
-        dm_code=dm_code.dm_code,
-        gtin=dm_code.gtin,
-        serial_number=dm_code.serial_number,
-        country=CountryEnum.from_code(dm_code.country_id).label if dm_code.country_id is not None else CountryEnum.UNKNOWN.label,
-        is_long_format=dm_code.is_long_format,
-        verification_key=dm_code.verification_key,
-        verification_key_value=dm_code.verification_key_value,
-        upload_date=dm_code.upload_date,
-        entry_time=dm_code.entry_time
-    )
+
