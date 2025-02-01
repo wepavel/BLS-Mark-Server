@@ -161,7 +161,7 @@ async def send_dmcode(client_id: str, dmcode: DataMatrixCode):
     # device_dicts = [device.model_dump() for device in devices]
 
     broadcast_event = Event(
-        name='heartbeat',
+        name='dmcode_stream',
         data=EventData(user_id=client_id, message=dmcode_public.model_dump(), notification_type=NotificationType.SUCCESS),
     )
     event = Event.model_validate_json(broadcast_event.model_dump_json())
