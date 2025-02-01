@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Path
 from app.api.ws_eventbus import send_broadcast_heartbeat_message
 from app.api.ws_eventbus import ws_eventbus
 from app.api.ws_eventbus import broadcast_msg
@@ -15,16 +15,16 @@ router = APIRouter()
 async def send_broadcast_heartbeat_message() -> None:
     await send_broadcast_heartbeat_message()
 
-@router.post('/send-personal-heartbeat-message/{client_id}')
+@router.post('/send-personal-heartbeat-message/{client_id:path}')
 async def send_personal_heartbeat_message(client_id: str) -> None:
     await send_personal_heartbeat_message(client_id)
 
-@router.post('/send-broadcast-message/{msg}')
+@router.post('/send-broadcast-message/{msg:path}')
 async def broadcast_message_msg(msg: str) -> None:
     await broadcast_msg(msg)
 
-@router.post('/send-dmcode/{client_id}/{code}/{entry}')
-async def send(client_id: str, code: str, entry: bool) -> DataMatrixCodePublic:
+@router.post('/send-dmcode/{client_id:path}/{code:path}/{entry:path}')
+async def send(client_id: str, entry: bool, code: str = Path(..., description="Encoded string to validate")) -> DataMatrixCodePublic:
     dmcode = validate_data_matrix(code)
     if dmcode is None:
         raise EXC(ErrorCode.DMCodeValidationError)

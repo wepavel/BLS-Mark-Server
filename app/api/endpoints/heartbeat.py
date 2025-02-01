@@ -10,7 +10,7 @@ from app.models.device import Device
 router = APIRouter()
 
 
-@router.get('/device-states/{key}')
+@router.get('/device-states/{key:path}')
 async def get_device_states(key: int) -> Device:
     if key == 0:
         raise EXC(ErrorCode.CoreFileUploadingError, details={'reason': 'Test'})
@@ -24,7 +24,7 @@ async def get_device_states(key: int) -> Device:
     return device
 
 
-@router.get('/service-heartbeat/{ping}')
+@router.get('/service-heartbeat/{ping:path}')
 async def ping(ping: str) -> PlainTextResponse:
     if ping == 'ping':
         return PlainTextResponse('pong')
