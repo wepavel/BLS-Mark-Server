@@ -33,6 +33,7 @@ class DataMatrixCodeCreate(DataMatrixCodeBase, table=False):
 class DataMatrixCodePublic(DataMatrixCodeBase, table=False):
     dm_code: str
     gtin: str
+    product_name: str = "Default name mock"
     serial_number: str
     country: str
     is_long_format: bool
