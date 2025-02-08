@@ -15,53 +15,14 @@ from app.core.exceptions import exception_handler
 # from app.core.logging import UvicornAccessLogFormatter, UvicornCommonLogFormatter
 from app.core.openapi import custom_openapi
 from starlette.middleware.cors import CORSMiddleware
-
-class Message(BaseModel):
-    content: str
-
-
-class TCPServer:
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
-        self.clients = set()
-
-    async def handle_client(self, reader, writer):
-        addr = writer.get_extra_info('peername')
-        self.clients.add(writer)
-        print(f'New connection from {addr}')
-
-        try:
-            while True:
-                data = await reader.read(100)
-                if not data:
-                    break
-                message = data.decode()
-                print(f'Received {message} from {addr}')
-
-                # Broadcast message to all clients
-                for client in self.clients:
-                    if client != writer:
-                        client.write(data)
-                        await client.drain()
-        finally:
-            self.clients.remove(writer)
-            writer.close()
-            await writer.wait_closed()
-            print(f'Connection closed for {addr}')
-
-    async def run(self):
-        server = await asyncio.start_server(self.handle_client, self.host, self.port)
-
-        addr = server.sockets[0].getsockname()
-        print(f'Serving on {addr}')
-
-        async with server:
-            await server.serve_forever()
-
+from app.db.init_db import init_db, create_database
+from app.db.session import SessionLocal
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    await create_database()
+    db = SessionLocal()
+    await init_db(db)
     # server = TCPServer('127.0.0.1', 8888)
     # print('Start TCP Server')
     # await asyncio.create_task(server.run())
@@ -113,6 +74,8 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 if __name__ == '__main__':
+
+
     uvicorn.run(
         app,
         host=str(settings.HOST),

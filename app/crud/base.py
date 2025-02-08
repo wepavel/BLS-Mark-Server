@@ -6,6 +6,8 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.db.base_class import Base
+from app.api import deps
+
 
 ModelType = TypeVar('ModelType', bound=Base)
 CreateModelType = TypeVar('CreateModelType', bound=BaseModel)
@@ -40,8 +42,8 @@ class CRUDBase(Generic[ModelType, CreateModelType, UpdateModelType]):
         return result.one_or_none()
 
     async def get_multi(self, db: AsyncSession, *, skip: int = 0, limit: int = 100) -> list[ModelType]:
-        result = await db.execute(select(self.model).offset(skip).limit(limit))
-        return list(result.scalars().all())
+        result = await db.exec(select(self.model).offset(skip).limit(limit))
+        return list(result.fetchall())
 
     async def create(self, db: AsyncSession, *, obj_in: CreateModelType) -> ModelType:
         obj_in_data = obj_in.model_dump()

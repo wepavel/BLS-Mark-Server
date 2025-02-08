@@ -45,6 +45,8 @@ class ErrorCode(Enum):
     TaskAlreadyExists = ErrorResponse(code=4062, msg='Task already exists')
     SessionNotFound = ErrorResponse(code=4071, msg='Session not found')
     SessionAlreadyExists = ErrorResponse(code=4072, msg='Session already exists')
+    GTINNotExists = ErrorResponse(code=4073, msg='GTIN not found')
+    GTINAlreadyExists = ErrorResponse(code=4073, msg='GTIN already exists')
     #  4301 - 4320: Resource and Limit Errors
     TooManyRequestsError = ErrorResponse(code=4301, msg='Too Many Requests')
     #  4400: Validation Error
@@ -52,6 +54,9 @@ class ErrorCode(Enum):
     #  4401-4500: General Validation Errors
     WrongFormat = ErrorResponse(code=4411, msg='Wrong format')
     DMCodeValidationError = ErrorResponse(code=4412, msg='DMCode validation error')
+    GTINValidationError = ErrorResponse(code=4413, msg='GTIN validation error')
+    DMCodeAddingError = ErrorResponse(code=4414, msg='DMCode adding error')
+    GTINAddingError = ErrorResponse(code=4415, msg='GTIN adding error')
     #  4501 - 4508: API and Request Errors
     Unauthorized = ErrorResponse(
         code=4501, msg='Sorry, you are not allowed to access this service: UnauthorizedRequest'

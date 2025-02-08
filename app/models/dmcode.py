@@ -1,39 +1,23 @@
-import time
-from uuid import UUID
-
-from sqlmodel import Field
-
 from app.db.base_class import Base
 from datetime import datetime, timezone
 from .country import CountryEnum
-# NEW_UUID = lambda: str(uuid.uuid4())
 
-
-# class DMCode(Base, table=True):
-#     id: UUID | None = Field(primary_key=True, index=True, unique=True, default=ULID.from_timestamp(time.time()))
-#     gtin: str | None = Field(unique=True, index=True, nullable=False, foreign_key='gtin.id')
-#     login: str | None = Field(unique=True, index=True, nullable=False)
-#     country_id: int | None = Field(default=1, foreign_key='country.id')
-
-
-import re
-from enum import Enum
-from typing import Optional
 from sqlmodel import Field, SQLModel
-
+from typing import Optional
+import re
 
 class DataMatrixCodeBase(SQLModel, table=False):
     dm_code: str
 
 
 class DataMatrixCodeCreate(DataMatrixCodeBase, table=False):
-    dm_code: str
+    pass
 
 
 class DataMatrixCodePublic(DataMatrixCodeBase, table=False):
     dm_code: str
     gtin: str
-    product_name: str = "Default name mock"
+    product_name: str = "Default name"
     serial_number: str
     country: str
     is_long_format: bool
@@ -43,17 +27,19 @@ class DataMatrixCodePublic(DataMatrixCodeBase, table=False):
     entry_time: str | None
     export_time: str | None
 
+class DataMatrixCodeProblem(DataMatrixCodeBase, table=False):
+    problem: str
 
 class DataMatrixCode(Base, table=True):
     id: int | None = Field(default=None, primary_key=True, index=True)
-    dm_code: str = Field(default=None, nullable=True)
+    dm_code: str = Field(default=None, unique=True, nullable=True)
     gtin: str = Field(index=True, max_length=14, foreign_key="gtin.code")
-    serial_number: str = Field(max_length=5)
+    serial_number: str = Field(max_length=13)
     country_id: int = Field(foreign_key="country.id")
     verification_key: str = Field(max_length=4)
     verification_key_value: str | None = Field(default=None, max_length=44)
     is_long_format: bool = Field(default=False)
-    upload_date: datetime = Field(default_factory=lambda: datetime.now(tz=timezone.utc).strftime("%Y_%m_%d_%H%M%S"))
+    upload_date: datetime = Field(default_factory=lambda: datetime.now())
     entry_time: datetime | None = Field(default=None)
     export_time: datetime | None = Field(default=None)
 
@@ -67,9 +53,96 @@ class DataMatrixCode(Base, table=True):
             is_long_format=self.is_long_format,
             verification_key=self.verification_key,
             verification_key_value=self.verification_key_value,
-            upload_date=self.upload_date,
+            upload_date=self.upload_date.strftime("%Y_%m_%d_%H%M%S"),
             entry_time=self.entry_time.strftime("%Y_%m_%d_%H%M%S") if self.entry_time is not None else None,
             export_time = self.export_time.strftime("%Y_%m_%d_%H%M%S") if self.export_time is not None else None,
         )
 
+    @classmethod
+    def from_data_matrix_code_create(cls, data: DataMatrixCodeCreate) -> Optional['DataMatrixCode']:
+        parsed_data = validate_data_matrix(data.dm_code)
+        return parsed_data if parsed_data else None
+
+
+def parse_data_matrix(data_matrix: str) -> DataMatrixCode:
+    clean_code = normalize_gs(data_matrix)
+    groups = clean_code.split("<GS>")
+
+    result = DataMatrixCode(
+        dm_code=data_matrix,
+        upload_date=datetime.now()
+    )
+
+    for group in groups:
+        if group.startswith("01"):
+            result.gtin = group[2:16]
+            if len(group) > 16:
+                remainder = group[16:]
+                if remainder.startswith("21"):
+                    if remainder[2].isdigit():
+                        country_id = int(remainder[2])
+                        result.country_id = country_id
+                        # result.country = CountryEnum.from_code(country_id).label
+                        result.serial_number = remainder[3:]
+                    else:
+                        result.country_id = 0
+                        # result.country = CountryEnum.UNKNOWN.label
+                        result.serial_number = remainder[2:]
+        elif group.startswith("91"):
+            result.verification_key = group[2:6]
+            result.is_long_format = True
+        elif group.startswith("92"):
+            result.verification_key_value = group[2:]
+            result.is_long_format = True
+        elif group.startswith("93"):
+            result.verification_key = group[2:6]
+            result.is_long_format = False
+
+    return result
+
+
+def validate_data_matrix(data_matrix: str) -> DataMatrixCode | None:
+    normalized_code = normalize_gs(data_matrix)
+
+    long_format_regex = r'^01\d{14}21[0-5].{5,12}<GS>91.{4}<GS>92.{44}$'
+    short_format_regex = r'^01\d{14}21[0-5].{5,12}<GS>93.{4}$'
+    long_format_regex_no_country = r'^01\d{14}21[A-Za-z].{5,13}<GS>91.{4}<GS>92.{44}$'
+    short_format_regex_no_country = r'^01\d{14}21[A-Za-z].{5,13}<GS>93.{4}$'
+
+    if (re.match(long_format_regex, normalized_code) or
+            re.match(short_format_regex, normalized_code) or
+            re.match(long_format_regex_no_country, normalized_code) or
+            re.match(short_format_regex_no_country, normalized_code)):
+
+        attrs = parse_data_matrix(normalized_code)
+
+        if len(attrs.gtin) != 14 or not attrs.gtin.isdigit():
+            return None
+
+        if len(attrs.serial_number) < 5 or len(attrs.serial_number) > 13:
+            return None
+
+        if attrs.country_id not in CountryEnum.get_all_codes():
+            return None
+
+        if attrs.is_long_format:
+            if len(attrs.verification_key) != 4:
+                return None
+            if len(attrs.verification_key_value) != 44:
+                return None
+        else:
+            if len(attrs.verification_key) != 4:
+                return None
+            if attrs.verification_key_value != "-":
+                attrs.verification_key_value = "-"
+
+        return attrs
+
+    return None
+
+
+def normalize_gs(input_str: str) -> str:
+    if input_str.startswith(chr(232)) or input_str.startswith(chr(29)):
+        input_str = input_str[1:]
+    return input_str.replace(chr(29), "<GS>")
 

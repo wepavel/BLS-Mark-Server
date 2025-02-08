@@ -2,6 +2,9 @@ from sqlmodel import Field
 from app.db.base_class import Base
 from enum import Enum
 
+class Country(Base, table=True):
+    id: int | None = Field(primary_key=True, index=True, unique=True)
+    name: str = Field(max_length=50)
 
 class CountryEnum(Enum):
     UNKNOWN = 0, "Unknown"
@@ -34,11 +37,13 @@ class CountryEnum(Enum):
     def get_all_codes(cls) -> list[int]:
         return [country.code for country in cls]
 
+    @classmethod
+    def get_all_countries(cls) -> list[Country]:
+        return [Country(id=country.code, name=country.label) for country in cls]
+
     def __str__(self):
         return self.label
 
 
-class Country(Base, table=True):
-    id: int | None = Field(primary_key=True, index=True, unique=True)
-    name: str = Field(max_length=50)
+
 
