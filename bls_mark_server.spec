@@ -4,9 +4,11 @@ from PyInstaller.utils.hooks import collect_all
 
 block_cipher = None
 
-# Собираем все необходимые данные и зависимости для FastAPI
+# Собираем все необходимые данные и зависимости
 fastapi_collect = collect_all("fastapi")
 uvicorn_collect = collect_all("uvicorn")
+sqlalchemy_collect = collect_all("sqlalchemy")
+asyncpg_collect = collect_all("asyncpg")
 
 a = Analysis(
     ['app/main.py'],  # Замените 'main.py' на имя вашего основного файла
@@ -15,10 +17,16 @@ a = Analysis(
     datas=[
         *fastapi_collect[0],
         *uvicorn_collect[0],
+        *sqlalchemy_collect[0],
+        *asyncpg_collect[0],
+        ('app/api', 'app/api'),  # Включаем директорию api
+        ('app/db', 'app/db'),    # Включаем директорию db
     ],
     hiddenimports=[
         *fastapi_collect[1],
         *uvicorn_collect[1],
+        *sqlalchemy_collect[1],
+        *asyncpg_collect[1],
         'uvicorn.logging',
         'uvicorn.loops',
         'uvicorn.loops.auto',
@@ -29,6 +37,9 @@ a = Analysis(
         'uvicorn.protocols.websockets.auto',
         'uvicorn.lifespan',
         'uvicorn.lifespan.on',
+        'asyncpg.pgproto.pgproto',
+        'sqlalchemy.ext.asyncio',
+        'sqlalchemy.ext.asyncio.engine',
     ],
     hookspath=[],
     hooksconfig={},
