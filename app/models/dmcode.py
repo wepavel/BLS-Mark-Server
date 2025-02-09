@@ -9,21 +9,23 @@ import re
 class DataMatrixCodeBase(SQLModel, table=False):
     dm_code: str
 
-
 class DataMatrixCodeCreate(DataMatrixCodeBase, table=False):
     pass
 
+class DataMatrixCodeUpdate(DataMatrixCodeBase, table=False):
+    entry_time: datetime = Field(default=None)
+    export_time: datetime = Field(default=None)
 
 class DataMatrixCodePublic(DataMatrixCodeBase, table=False):
     dm_code: str
     gtin: str
-    product_name: str = "Default name"
+    product_name: str
     serial_number: str
     country: str
     is_long_format: bool
     verification_key: str
     verification_key_value: str | None
-    upload_date: str
+    upload_time: str
     entry_time: str | None
     export_time: str | None
 
@@ -39,7 +41,7 @@ class DataMatrixCode(Base, table=True):
     verification_key: str = Field(max_length=4)
     verification_key_value: str | None = Field(default=None, max_length=44)
     is_long_format: bool = Field(default=False)
-    upload_date: datetime = Field(default_factory=lambda: datetime.now())
+    upload_time: datetime = Field(default_factory=lambda: datetime.now())
     entry_time: datetime | None = Field(default=None)
     export_time: datetime | None = Field(default=None)
 
@@ -47,13 +49,14 @@ class DataMatrixCode(Base, table=True):
         return DataMatrixCodePublic(
             dm_code=self.dm_code,
             gtin=self.gtin,
+            product_name="Unknown Product",
             serial_number=self.serial_number,
             country=CountryEnum.from_code(
                 self.country_id).label if self.country_id is not None else CountryEnum.UNKNOWN.label,
             is_long_format=self.is_long_format,
             verification_key=self.verification_key,
             verification_key_value=self.verification_key_value,
-            upload_date=self.upload_date.strftime("%Y_%m_%d_%H%M%S"),
+            upload_time=self.upload_time.strftime("%Y_%m_%d_%H%M%S"),
             entry_time=self.entry_time.strftime("%Y_%m_%d_%H%M%S") if self.entry_time is not None else None,
             export_time = self.export_time.strftime("%Y_%m_%d_%H%M%S") if self.export_time is not None else None,
         )
@@ -70,7 +73,7 @@ def parse_data_matrix(data_matrix: str) -> DataMatrixCode:
 
     result = DataMatrixCode(
         dm_code=data_matrix,
-        upload_date=datetime.now()
+        upload_time=datetime.now()
     )
 
     for group in groups:
