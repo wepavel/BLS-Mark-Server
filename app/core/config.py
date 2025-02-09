@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = '/api/v1'
     # SERVER_NAME: str
     # SERVER_HOST: AnyHttpUrl
-    HOST: str = os.getenv('HOST', '0.0.0.0')
+    HOST: str = os.getenv('HOST', '127.0.0.1')
     PORT: int = os.getenv('PORT', 8001)
 
     PROJECT_NAME: str = 'BLS Mark Server'
@@ -29,10 +29,10 @@ class Settings(BaseSettings):
 
     SESSION_EXPIRE_MINUTES: int = 60 * 24 * 365  # 1 year
 
-    POSTGRES_SERVER: str
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
+    POSTGRES_SERVER: str = "server"
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_DB: str = "postgres"
     SQLALCHEMY_DATABASE_URI: PostgresDsn | None = None
 
     @field_validator('SQLALCHEMY_DATABASE_URI', mode='before')
