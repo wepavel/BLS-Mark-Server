@@ -36,17 +36,20 @@ class ErrorCode(Enum):
     UserExists = ErrorResponse(code=4036, msg='The user already exists in the system')
     #  4041 - 4060: Project Management Errors
     ProjectLocked = ErrorResponse(code=4041, msg='Project locked')
-    AvailableProjectsLimitExceeded = ErrorResponse(code=4042, msg='Available projects limit exceeded')
-    AvailableEditsLimitExceeded = ErrorResponse(code=4043, msg='Available edits limit exceeded')
+
     NameAlreadyExists = ErrorResponse(code=4044, msg='This name already exists')
-    InstrumentalTrackExists = ErrorResponse(code=4045, msg='Instrumental track already exists')
+
+    GTINNotExists = ErrorResponse(code=4045, msg='GTIN not found')
+    GTINAlreadyExists = ErrorResponse(code=4046, msg='GTIN already exists')
+    DMCodeNotExists = ErrorResponse(code=4045, msg='DataMatrix code not found')
+    DMCodeAlreadyExists = ErrorResponse(code=4046, msg='DataMatrix code already exists')
+
     #  4061 - 4081: Task Management Errors
     TaskNotFound = ErrorResponse(code=4061, msg='Task not found')
     TaskAlreadyExists = ErrorResponse(code=4062, msg='Task already exists')
     SessionNotFound = ErrorResponse(code=4071, msg='Session not found')
     SessionAlreadyExists = ErrorResponse(code=4072, msg='Session already exists')
-    GTINNotExists = ErrorResponse(code=4073, msg='GTIN not found')
-    GTINAlreadyExists = ErrorResponse(code=4073, msg='GTIN already exists')
+
     #  4301 - 4320: Resource and Limit Errors
     TooManyRequestsError = ErrorResponse(code=4301, msg='Too Many Requests')
     #  4400: Validation Error

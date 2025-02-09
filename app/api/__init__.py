@@ -1,11 +1,12 @@
 from fastapi import APIRouter
 
-from app.api.endpoints import heartbeat, code_import, manual_levers, webui, streaming
+from app.api.endpoints import heartbeat, code_import, manual_levers, webui, streaming, code_process
 
 api_router = APIRouter()
 api_router.include_router(heartbeat.router, prefix='/heartbeat', tags=['heartbeat'])
 api_router.include_router(code_import.router, prefix='/code-processing', tags=['code-import'])
 api_router.include_router(streaming.router, prefix='/streaming', tags=['streaming'])
+api_router.include_router(code_process.router, prefix='/process', tags=['process'])
 api_router.include_router(manual_levers.router, prefix='/manual-levers', tags=['manual-levers'])
 api_router.include_router(webui.router, prefix='/webui', tags=['webui'])
 
