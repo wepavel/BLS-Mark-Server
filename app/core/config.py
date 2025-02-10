@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = '/api/v1'
     # SERVER_NAME: str
     # SERVER_HOST: AnyHttpUrl
-    HOST: str = os.getenv('HOST', '0.0.0.0')
+    HOST: str = os.getenv('HOST', '127.0.0.1')
     PORT: int = os.getenv('PORT', 8001)
 
     PROJECT_NAME: str = 'BLS Mark Server'

@@ -7,6 +7,7 @@ from app.models import Country
 # from app.models import GTIN, GTINPublic
 from app.core.exceptions import EXC
 from app.api import deps
+from urllib.parse import unquote  # Импортируем unquote
 # from app.models.dmcode import validate_data_matrix
 
 from fastapi import APIRouter
@@ -108,11 +109,12 @@ async def add_gtin(*, gtin: models.GTINCreate, db: AsyncSession = Depends(deps.g
     return result_gtin.to_gtin_public()
 
 
-@router.get('/is-gtin')
-async def is_gtin(*, gtin: models.GTINBase, db: AsyncSession = Depends(deps.get_db)) -> bool:
+@router.get('/is-gtin/{gtin_encoded}')
+async def is_gtin(*, gtin_encoded: str, db: AsyncSession = Depends(deps.get_db)) -> bool:
     """
     Check if a GTIN exists in DB
     """
+    gtin = models.GTINBase(code=unquote(gtin_encoded))
     if not models.GTIN.from_gtin_create(models.GTINCreate(code=gtin.code, name='')):
         raise EXC(ErrorCode.GTINValidationError)
 
