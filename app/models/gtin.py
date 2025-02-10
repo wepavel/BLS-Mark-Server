@@ -5,7 +5,7 @@ from typing import Optional
 from sqlalchemy import Column
 
 class GTINBase(SQLModel, table=False):
-    code: str
+    code: str = Field(min_length=14, max_length=14)
 
 class GTINCreate(GTINBase, table=False):
     name: str
@@ -26,8 +26,8 @@ class GTIN(Base, table=True):
 
     @classmethod
     def from_gtin_create(cls, gtin: GTINCreate) -> Optional['GTIN']:
-        if len(gtin.code) != 14:
-          return None
+        # if len(gtin.code) != 14:
+        #   return None
         return GTIN(
             code=gtin.code,
             name=gtin.name,
