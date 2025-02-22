@@ -2,12 +2,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.crud.base import CRUDBase
 from app import crud, models
 from app.models import DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodePublic, GTINPublic, DataMatrixCodeUpdate
-from sqlmodel import select
+from sqlmodel import select, func
 from typing import Any
+from datetime import datetime
 
-class CRUDUser(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeUpdate]):
+class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeUpdate]):
 
-    async def create(self, db: AsyncSession, *, obj_in: DataMatrixCodeCreate) -> DataMatrixCode | None:
+    async def create(self, db: AsyncSession, *, obj_in: DataMatrixCodeCreate) -> DataMatrixCodePublic | None:
         db_obj = DataMatrixCode.from_data_matrix_code_create(obj_in)
         if not db_obj:
             return None
@@ -24,6 +25,7 @@ class CRUDUser(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeUpda
         public_obj.product_name = product_name
 
         return public_obj
+
 
     async def create_multi(self, *, db: AsyncSession, obj_in: list[DataMatrixCodeCreate]) -> list[DataMatrixCodePublic]:
         db_objs = [DataMatrixCode.from_data_matrix_code_create(obj) for obj in obj_in if obj]
@@ -110,20 +112,56 @@ class CRUDUser(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeUpda
 
         return public_objs
 
-    async def update(self, db: AsyncSession, *, db_obj: DataMatrixCode, obj_in: DataMatrixCodeUpdate | dict[str, Any]) -> DataMatrixCodePublic:
+
+    async def update(
+            self,
+            db: AsyncSession,
+            *,
+            db_obj: DataMatrixCode,
+            obj_in: DataMatrixCodeUpdate | dict[str, Any]
+    ) -> DataMatrixCodePublic:
+
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
             update_data = obj_in.model_dump(exclude_unset=True)
-        # if update_data.get('entry_time'):
-        #     del update_data['entry_time']
-        #
-        #     update_data['entry_time'] = datetime.fromtimestamp(update_data['entry_time'])
-        #     hashed_password = get_password_hash(update_data['password'])
-        #     del update_data['password']
-        #     update_data['hashed_password'] = hashed_password
+
+        # Обработка временных полей
+        if 'entry_time' in update_data:
+            if update_data['entry_time'] is not None:
+                if isinstance(update_data['entry_time'], str):
+                    update_data['entry_time'] = datetime.fromisoformat(update_data['entry_time'])
+            else:
+                # Если entry_time равно None, удаляем его из update_data
+                del update_data['entry_time']
+
+        if 'export_time' in update_data:
+            if update_data['export_time'] is not None:
+                if isinstance(update_data['export_time'], str):
+                    update_data['export_time'] = datetime.fromisoformat(update_data['export_time'])
+            else:
+                # Если export_time равно None, удаляем его из update_data
+                del update_data['export_time']
 
         result = await super().update(db, db_obj=db_obj, obj_in=update_data)
+        result = result.to_public_data_matrix_code()
+        product_name = await crud.gtin.get_by_code(db=db, gtin=result.gtin)
+        if product_name:
+            result.product_name = product_name.name
+
         return result
 
-dmcode =  CRUDUser(DataMatrixCode)
+    async def get_unique_export_dates(self, db: AsyncSession, gtin: str, month: datetime) -> list[datetime]:
+        query = select(func.date(DataMatrixCode.entry_time)).distinct()\
+            .where(DataMatrixCode.gtin == gtin)\
+            .where(DataMatrixCode.entry_time.isnot(None))\
+            .where(func.extract('year', DataMatrixCode.entry_time) == month.year)\
+            .where(func.extract('month', DataMatrixCode.entry_time) == month.month)\
+            .order_by(func.date(DataMatrixCode.entry_time))
+
+        result = await db.exec(query)
+        results = result.fetchall()
+        # results = [date for (date,) in result.fetchall()]
+        return results
+
+dmcode =  CRUDUDmCode(DataMatrixCode)

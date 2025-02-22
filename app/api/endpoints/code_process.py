@@ -3,7 +3,7 @@ from app.core.logging import logger
 from fastapi import Depends
 
 # from app.models import DataMatrixCodeCreate, DataMatrixCode, DataMatrixCodePublic, DataMatrixCodeProblem
-from app.models import Country
+from app.models import Country, DataMatrixCodeCreate
 # from app.models import GTIN, GTINPublic
 from app.core.exceptions import EXC
 from app.api import deps
@@ -22,8 +22,9 @@ from fastapi import APIRouter
 router = APIRouter()
 
 
+
 @router.post('/set-entry-time')
-async def set_entry_time(*, dm_code: models.DataMatrixCodeUpdate,
+async def set_entry_time(*, dm_code: models.DataMatrixCodeCreate,
                          db: AsyncSession = Depends(deps.get_db)) -> models.DataMatrixCodePublic:
     """
     Set current entry time
@@ -62,3 +63,4 @@ async def set_custom_time(*, dm_code: models.DataMatrixCodeUpdate, db: AsyncSess
     result = crud.dmcode.update(db=db, db_obj=db_obj, obj_in=dm_code)
 
     return result
+

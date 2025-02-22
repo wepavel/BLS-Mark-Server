@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     HOST: str = os.getenv('HOST', '127.0.0.1')
     PORT: int = os.getenv('PORT', 8001)
 
-    PROJECT_NAME: str = 'BLS Mark Server'
+    PROJECT_NAME: str = os.getenv('PROJECT_NAME', 'BLS Mark Server')
     LOG_LEVEL: str = os.getenv('LOG_LEVEL', 'DEBUG')
     # LOG_PATH: str = os.getenv('LOG_PATH', './logs')
 
@@ -47,6 +47,8 @@ class Settings(BaseSettings):
             path=f"{values.data.get('POSTGRES_DB') or ''}",
         ).unicode_string()
 
+    # Devices
+    SCANNER_ADRESS: str = os.getenv('SCANNER_ADRESS', '169.254.36.51')
 
 try:
     settings = Settings()

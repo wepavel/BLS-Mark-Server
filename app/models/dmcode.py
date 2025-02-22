@@ -2,9 +2,10 @@ from app.db.base_class import Base
 from datetime import datetime, timezone
 from .country import CountryEnum
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, Column, DateTime
 from typing import Optional
 import re
+from app.core.utils import current_timezone
 
 class DataMatrixCodeBase(SQLModel, table=False):
     dm_code: str
@@ -15,6 +16,10 @@ class DataMatrixCodeCreate(DataMatrixCodeBase, table=False):
 class DataMatrixCodeUpdate(DataMatrixCodeBase, table=False):
     entry_time: datetime = Field(default=None)
     export_time: datetime = Field(default=None)
+
+class DataMatrixCodeDatetime(DataMatrixCodeBase, table=False):
+    upload_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    entry_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class DataMatrixCodePublic(DataMatrixCodeBase, table=False):
     dm_code: str
@@ -41,11 +46,17 @@ class DataMatrixCode(Base, table=True):
     verification_key: str = Field(max_length=4)
     verification_key_value: str | None = Field(default=None, max_length=44)
     is_long_format: bool = Field(default=False)
-    upload_time: datetime = Field(default_factory=lambda: datetime.now())
-    entry_time: datetime | None = Field(default=None)
-    export_time: datetime | None = Field(default=None)
+    upload_time: datetime = Field(sa_column=Column(DateTime(timezone=True)), default_factory=lambda: datetime.now(timezone.utc))
+    entry_time: datetime | None = Field(sa_column=Column(DateTime(timezone=True)),default=None)
+    export_time: datetime | None = Field(sa_column=Column(DateTime(timezone=True)),default=None)
 
     def to_public_data_matrix_code(self) -> DataMatrixCodePublic:
+        def format_time(dt):
+            if dt is None:
+                return None
+            time = dt.astimezone(current_timezone)
+            return time.strftime("%Y_%m_%d_%H%M%S")
+
         return DataMatrixCodePublic(
             dm_code=self.dm_code,
             gtin=self.gtin,
@@ -56,9 +67,9 @@ class DataMatrixCode(Base, table=True):
             is_long_format=self.is_long_format,
             verification_key=self.verification_key,
             verification_key_value=self.verification_key_value,
-            upload_time=self.upload_time.strftime("%Y_%m_%d_%H%M%S"),
-            entry_time=self.entry_time.strftime("%Y_%m_%d_%H%M%S") if self.entry_time is not None else None,
-            export_time = self.export_time.strftime("%Y_%m_%d_%H%M%S") if self.export_time is not None else None,
+            upload_time=format_time(self.upload_time),
+            entry_time=format_time(self.entry_time),
+            export_time = format_time(self.export_time),
         )
 
     @classmethod
