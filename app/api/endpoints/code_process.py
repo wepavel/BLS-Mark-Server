@@ -3,7 +3,9 @@ from app.core.logging import logger
 from fastapi import Depends
 
 # from app.models import DataMatrixCodeCreate, DataMatrixCode, DataMatrixCodePublic, DataMatrixCodeProblem
+
 from app.models import Country, DataMatrixCodeCreate
+
 # from app.models import GTIN, GTINPublic
 from app.core.exceptions import EXC
 from app.api import deps
@@ -20,7 +22,6 @@ from app import crud, models
 from fastapi import APIRouter
 
 router = APIRouter()
-
 
 
 @router.post('/set-entry-time')

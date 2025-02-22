@@ -6,9 +6,10 @@ from sqlmodel import select, func
 from typing import Any
 from datetime import datetime
 
-class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeUpdate]):
 
+class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeUpdate]):
     async def create(self, db: AsyncSession, *, obj_in: DataMatrixCodeCreate) -> DataMatrixCodePublic | None:
+
         db_obj = DataMatrixCode.from_data_matrix_code_create(obj_in)
         if not db_obj:
             return None
@@ -165,3 +166,4 @@ class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeU
         return results
 
 dmcode =  CRUDUDmCode(DataMatrixCode)
+

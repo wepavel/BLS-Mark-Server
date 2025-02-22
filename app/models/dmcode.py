@@ -50,6 +50,7 @@ class DataMatrixCode(Base, table=True):
     entry_time: datetime | None = Field(sa_column=Column(DateTime(timezone=True)),default=None)
     export_time: datetime | None = Field(sa_column=Column(DateTime(timezone=True)),default=None)
 
+
     def to_public_data_matrix_code(self) -> DataMatrixCodePublic:
         def format_time(dt):
             if dt is None:
