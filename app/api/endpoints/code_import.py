@@ -3,7 +3,7 @@ from app.core.logging import logger
 from fastapi import Depends
 
 # from app.models import DataMatrixCodeCreate, DataMatrixCode, DataMatrixCodePublic, DataMatrixCodeProblem
-from app.models import Country
+from app.models import Country, DataMatrixCodeProblem
 # from app.models import GTIN, GTINPublic
 from app.core.exceptions import EXC
 from app.api import deps
@@ -13,8 +13,8 @@ from urllib.parse import unquote  # Импортируем unquote
 from fastapi import APIRouter
 
 from sqlmodel.ext.asyncio.session import AsyncSession
-
-
+from app.core.utils import timezone_to_utc, current_timezone
+from app.models import Country, DataMatrixCodeCreate
 # from app import crud
 # from app import models
 from app import crud, models
@@ -89,6 +89,9 @@ async def add_dmcodes(
         except Exception as e:
             raise EXC(ErrorCode.DMCodeAddingError, details={'reason': str(e)})
 
+    problem_dm_codes.append(models.DataMatrixCodeProblem(dm_code='test_code_1', problem='Test Problem 1'))
+    problem_dm_codes.append(models.DataMatrixCodeProblem(dm_code='test_code_2', problem='Test Problem 2'))
+
     return problem_dm_codes
 
 @router.post('/add-gtin')
@@ -123,20 +126,34 @@ async def is_gtin(*, gtin_encoded: str, db: AsyncSession = Depends(deps.get_db))
     else:
         return False
 
-@router.get('/get-all-gtins')
-async def get_all_gtins(*, db: AsyncSession = Depends(deps.get_db)) -> list[models.GTINPublic]:
+@router.post('/add-admcode-with-time')
+async def add_dmcode_with_time(*, dm_code_update: models.DataMatrixCodeDatetime, db: AsyncSession = Depends(deps.get_db)) -> models.DataMatrixCodePublic:
     """
-    Get all existing gtins from DB
+    Add new dmcode to system with datetime
     """
-    gtin_list = await crud.gtin.get_multi(db=db)
-    return gtin_list
+    dm_code = models.DataMatrixCode.from_data_matrix_code_create(DataMatrixCodeCreate(dm_code=dm_code_update.dm_code))
+    if dm_code is None:
+        raise EXC(ErrorCode.DMCodeValidationError)
+
+    if not await crud.gtin.get_by_code(gtin=dm_code.gtin, db=db):
+        raise EXC(ErrorCode.GTINNotExists)
+
+    existing_dmcode = await crud.dmcode.get_by_code(dm_code=dm_code.dm_code, db=db)
+    if existing_dmcode:
+        raise EXC(ErrorCode.DMCodeAlreadyExists)
+
+    db_obj_pub = await crud.dmcode.create(
+        obj_in=models.DataMatrixCodeCreate(dm_code=dm_code.dm_code),
+        db=db
+    )
+    if not db_obj_pub:
+        raise EXC(ErrorCode.DMCodeAddingError)
+
+    db_obj = await crud.dmcode._get_by_code(db=db, dm_code=db_obj_pub.dm_code)
+    db_obj.upload_time = timezone_to_utc(dm_code_update.upload_time)  # Assuming dm_code.upload_time is already UTC
+    db_obj.entry_time = timezone_to_utc(dm_code_update.entry_time)  # Assuming dm_code.entry_time is already UTC
 
 
-@router.get('/get-all-dmcodes')
-async def get_all_dmcodes(*, db: AsyncSession = Depends(deps.get_db)) -> list[models.DataMatrixCodePublic]:
-    """
-    Get last 100 dmcodes from database
-    """
-    dmcode_list = await crud.dmcode.get_multi(db=db)
+    result = await crud.dmcode.update(db=db, db_obj=db_obj, obj_in=dm_code_update)
 
-    return dmcode_list
+    return result

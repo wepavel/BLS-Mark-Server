@@ -6,9 +6,11 @@ from typing import Any, List
 from fastapi import WebSocket
 from sqlmodel import Field, SQLModel
 
+from app.core.config import settings
 from app.core.logging import logger
 from app.models import Device, DataMatrixCodePublic, DataMatrixCode
 import random
+from app.core.utils import ping_device
 
 class NotificationType(str, Enum):
     CRITICAL = 'CRITICAL'
@@ -107,9 +109,10 @@ ws_eventbus = WSConnectionManager()
 
 
 async def send_personal_heartbeat_message(client_id: str):
+    is_scanner = await ping_device(settings.SCANNER_ADRESS)
     devices = [
         Device(name='printer', ping=random.choice([True, False]), heartbeat=random.choice([True, False])),
-        Device(name='scanner', ping=random.choice([True, False]), heartbeat=random.choice([True, False])),
+        Device(name='scanner', ping=is_scanner, heartbeat=is_scanner),
         Device(name='plc', ping=random.choice([True, False]), heartbeat=random.choice([True, False])),
     ]
 

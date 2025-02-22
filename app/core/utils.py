@@ -1,6 +1,6 @@
-from datetime import datetime
-from app.models import DataMatrixCode, CountryEnum, Country, DataMatrixCodePublic
-import re
+# from datetime import datetime
+# from app.models import DataMatrixCode, CountryEnum, Country, DataMatrixCodePublic
+# import re
 
 # import ulid
 #
@@ -101,7 +101,25 @@ import re
 #
 #     return None
 
+from ping3 import ping
+from datetime import datetime, timezone
+import pytz
 
 
+async def ping_device(ip_address: str) -> bool:
+    try:
+        response_time = ping(ip_address, timeout=2)
+        if response_time:
+            return True
+        else:
+            return False
+    except Exception as e:
+        return False
 
 
+current_timezone = pytz.timezone('Europe/Moscow')
+
+def timezone_to_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        dt = current_timezone.localize(dt)
+    return dt.astimezone(timezone.utc)
