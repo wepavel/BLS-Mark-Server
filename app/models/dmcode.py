@@ -84,7 +84,7 @@ def parse_data_matrix(data_matrix: str) -> DataMatrixCode:
 
     result = DataMatrixCode(
         dm_code=data_matrix,
-        upload_time=datetime.now()
+        upload_time=datetime.now(timezone.utc)
     )
 
     for group in groups:
