@@ -152,18 +152,42 @@ class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeU
 
         return result
 
-    async def get_unique_export_dates(self, db: AsyncSession, gtin: str, month: datetime) -> list[datetime]:
+    async def get_unique_export_dates(self, db: AsyncSession, gtin: str, date: datetime) -> list[datetime]:
         query = select(func.date(DataMatrixCode.entry_time)).distinct()\
             .where(DataMatrixCode.gtin == gtin)\
             .where(DataMatrixCode.entry_time.isnot(None))\
-            .where(func.extract('year', DataMatrixCode.entry_time) == month.year)\
-            .where(func.extract('month', DataMatrixCode.entry_time) == month.month)\
+            .where(func.extract('year', DataMatrixCode.entry_time) == date.year)\
+            .where(func.extract('month', DataMatrixCode.entry_time) == date.month)\
             .order_by(func.date(DataMatrixCode.entry_time))
 
         result = await db.exec(query)
         results = result.fetchall()
-        # results = [date for (date,) in result.fetchall()]
+
         return results
+
+    async def get_codes_by_day(self, db: AsyncSession, gtin: str, date: datetime) -> list[DataMatrixCodePublic]:
+        query = (
+            select(DataMatrixCode, models.GTIN.name.label("product_name"))
+            .join(models.GTIN, DataMatrixCode.gtin == models.GTIN.code)
+            .where(DataMatrixCode.gtin == gtin)
+            .where(DataMatrixCode.entry_time.isnot(None))
+            .where(func.extract('year', DataMatrixCode.entry_time) == date.year)
+            .where(func.extract('month', DataMatrixCode.entry_time) == date.month)
+            .where(func.extract('day', DataMatrixCode.entry_time) == date.day)
+            .order_by(DataMatrixCode.entry_time)
+        )
+
+        result = await db.exec(query)
+        rows = result.fetchall()
+
+        public_objs = []
+        for dm_code, product_name in rows:
+            public_obj = dm_code.to_public_data_matrix_code()
+            public_obj.product_name = product_name or "Unknown Product"
+            public_objs.append(public_obj)
+
+        return public_objs
+
 
 dmcode =  CRUDUDmCode(DataMatrixCode)
 
