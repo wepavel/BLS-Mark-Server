@@ -27,19 +27,62 @@ async def get_all_gtins(*, db: AsyncSession = Depends(deps.get_db)) -> list[mode
     gtin_list = await crud.gtin.get_multi(db=db)
     return gtin_list
 
-@router.get('/get-product-export-dates/{gtin}/{date}')
-async def get_product_export_dates(*, gtin: str, month: str, db: AsyncSession = Depends(deps.get_db)) -> list[str]:
+@router.get('/get-gtin-entry-dates/{gtin}/{date}')
+async def get_gtin_entry_dates(*, gtin: str, date: str, db: AsyncSession = Depends(deps.get_db)) -> list[str]:
     """
     Get unique export dates for a specific GTIN in a given month
+
+    Args:
+        gtin (str): Global Trade Item Number (GTIN), уникальный идентификатор продукта.
+        date (str): Строка месяца в формате "YYYY_MM".
+        db (AsyncSession): Асинхронная сессия базы данных, используемая для выполнения запросов к базе данных.
+
+    Returns:
+        list[str]: Список уникальных экспортных дат в формате "YYYY_MM_DD".
     """
+    gtin = models.GTINBase(code=gtin)
+    if not models.GTIN.from_gtin_create(models.GTINCreate(code=gtin.code, name='')):
+        raise EXC(ErrorCode.GTINValidationError)
+    if not await crud.gtin.get_by_code(gtin=gtin.code, db=db):
+        raise EXC(ErrorCode.GTINNotExists)
+
     try:
-        month_date = datetime.strptime(month, "%Y_%m")
+        month_date = datetime.strptime(date, "%Y_%m")
     except ValueError:
         raise EXC(ErrorCode.ValidationError, details = {'detail': 'Invalid month format. Use YYYY_MM'})
 
-    export_dates = await crud.dmcode.get_unique_export_dates(db, gtin, month_date)
+    export_dates = await crud.dmcode.get_unique_export_dates(db, gtin.code, month_date)
 
     return [date.strftime("%Y_%m_%d") for date in export_dates]
+
+
+@router.get('/get-gtin-dmcodes-by-date/{gtin}/{date}')
+async def get_gtin_dmcodes_by_date(*, gtin: str, date: str, db: AsyncSession = Depends(deps.get_db)) -> list[models.DataMatrixCodePublic]:
+    """
+    Получить все DataMatrix коды для определенного дня.
+
+    Args:
+        gtin (str): Global Trade Item Number (GTIN), уникальный идентификатор продукта.
+        date (str): Строка даты в формате "YYYY_MM_DD".
+        db (AsyncSession): Асинхронная сессия базы данных.
+
+    Returns:
+        list[models.DataMatrixCodePublic]: Список объектов DataMatrixCodePublic.
+    """
+    gtin = models.GTINBase(code=gtin)
+    if not models.GTIN.from_gtin_create(models.GTINCreate(code=gtin.code, name='')):
+        raise EXC(ErrorCode.GTINValidationError)
+    if not await crud.gtin.get_by_code(gtin=gtin.code, db=db):
+        raise EXC(ErrorCode.GTINNotExists)
+
+    try:
+        date_obj = datetime.strptime(date, "%Y_%m_%d")
+    except ValueError:
+        raise EXC(ErrorCode.ValidationError, details={'detail': 'Invalid month format. Use YYYY_MM_DD'})
+
+    dm_codes = await crud.dmcode.get_codes_by_day(db, gtin.code, date_obj)
+
+    return dm_codes
 
 
 @router.get('/get-all-dmcodes')
