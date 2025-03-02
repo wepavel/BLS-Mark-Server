@@ -1,7 +1,8 @@
 from typing import Any, Generic, TypeVar
 
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel
+# from pydantic import BaseModel
+from sqlmodel import SQLModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
@@ -10,8 +11,8 @@ from app.api import deps
 
 
 ModelType = TypeVar('ModelType', bound=Base)
-CreateModelType = TypeVar('CreateModelType', bound=BaseModel)
-UpdateModelType = TypeVar('UpdateModelType', bound=BaseModel)
+CreateModelType = TypeVar('CreateModelType', bound=SQLModel)
+UpdateModelType = TypeVar('UpdateModelType', bound=SQLModel)
 
 
 def merge_dicts(d1: dict, d2: dict) -> dict:

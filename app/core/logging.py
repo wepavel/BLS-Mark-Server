@@ -45,6 +45,17 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s [%(filename)s:%(funcName)s]',
     # filemode='w'
 )
+
+class EndpointFilter(logging.Filter):
+    def __init__(self, path):
+        self.path = path
+
+    def filter(self, record):
+        return record.args and len(record.args) >= 3 and record.args[2] != self.path
+
+# Disable logging for ping
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter("/api/v1/heartbeat/service-heartbeat/ping"))
+
 logger = logging.getLogger('app_logger')
 logger.setLevel(logging.DEBUG)
 context_filter = ContextFilter()

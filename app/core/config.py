@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = os.getenv('LOG_LEVEL', 'DEBUG')
     # LOG_PATH: str = os.getenv('LOG_PATH', './logs')
 
+    DMCODE_HANDLE_TIMEOUT: float = os.getenv('DMCODE_HANDLE_TIMEOUT', 0.5)
+
     SESSION_EXPIRE_MINUTES: int = 60 * 24 * 365  # 1 year
 
     POSTGRES_SERVER: str

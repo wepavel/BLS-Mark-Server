@@ -24,7 +24,7 @@ async def get_device_states(key: int) -> Device:
     return device
 
 
-@router.get('/service-heartbeat/{ping:path}')
+@router.get('/service-heartbeat/{ping}')
 async def ping(ping: str) -> PlainTextResponse:
     if ping == 'ping':
         return PlainTextResponse('pong')

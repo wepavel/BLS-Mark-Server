@@ -9,6 +9,7 @@ class GTINBase(SQLModel, table=False):
 
 class GTINCreate(GTINBase, table=False):
     name: str
+    desc: str = Field(default='', max_length=32000)
 
 class GTINPublic(GTINCreate, table=False):
     pass
@@ -17,11 +18,13 @@ class GTIN(Base, table=True):
     id: int | None = Field(default=None, primary_key=True, index=True)
     code: str = Field(index=True, unique=True, min_length=14, max_length=14)
     name: str = Field(max_length=255, unique=True)
+    desc: str = Field(default='', max_length=32000)
 
     def to_gtin_public(self) -> GTINPublic:
         return GTINPublic(
             code=self.code,
             name=self.name,
+            desc=self.desc,
         )
 
     @classmethod
@@ -31,5 +34,6 @@ class GTIN(Base, table=True):
         return GTIN(
             code=gtin.code,
             name=gtin.name,
+            desc=gtin.desc,
         )
 

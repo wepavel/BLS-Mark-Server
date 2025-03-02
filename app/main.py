@@ -18,6 +18,7 @@ from starlette.middleware.cors import CORSMiddleware
 from app.db.init_db import init_db, create_database
 from app.db.session import SessionLocal
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await create_database()
@@ -69,7 +70,6 @@ app.add_middleware(
     allow_methods=['*'],
     allow_headers=['*'],
 )
-
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
