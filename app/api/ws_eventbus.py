@@ -170,3 +170,17 @@ async def send_dmcode(client_id: str, dmcode: DataMatrixCode):
     event = Event.model_validate_json(broadcast_event.model_dump_json())
     # await ws_eventbus.send_personal_message(client_id, event)
     await ws_eventbus.send_personal_message(client_id, event)
+
+async def broadcast_dmcode(dmcode: DataMatrixCode):
+    dmcode_public = dmcode.to_public_data_matrix_code()
+
+    # device_dicts = [device.model_dump() for device in devices]
+
+    broadcast_event = Event(
+        name='dmcode_stream',
+        data=EventData(user_id="-1", message=dmcode_public.model_dump(), notification_type=NotificationType.SUCCESS),
+    )
+    event = Event.model_validate_json(broadcast_event.model_dump_json())
+    # await ws_eventbus.send_personal_message(client_id, event)
+    # await ws_eventbus.send_personal_message(client_id, event)
+    await ws_eventbus.broadcast(broadcast_event)
