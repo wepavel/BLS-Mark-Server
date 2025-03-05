@@ -17,6 +17,8 @@ from app.core.openapi import custom_openapi
 from starlette.middleware.cors import CORSMiddleware
 from app.db.init_db import init_db, create_database
 from app.db.session import SessionLocal
+from app.core.license_manager import LicenseManager
+from app.core.logging import logger
 
 
 @asynccontextmanager
@@ -72,9 +74,22 @@ app.add_middleware(
 )
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+def check_license() -> bool:
+    serial = LicenseManager.get_motherboard_serial()
+    current_hash =  LicenseManager.create_augmented_hash(serial,  LicenseManager._default_salt)
 
-if __name__ == '__main__':
+    stored_hash =  LicenseManager.read_hash_from_registry()
+    if stored_hash != current_hash:
+        logger.error('License validation failed: stored key does not match the expected key.')
+        return False
+    else:
+        logger.info('License validated successfully: stored hash matches the current hash.')
+        return True
 
+
+def main() -> None:
+    if not check_license():
+        return
 
     uvicorn.run(
         app,
@@ -82,3 +97,8 @@ if __name__ == '__main__':
         port=settings.PORT,
         log_config='./log_config.json',
     )  # ,log_config='./app/log_config.json'
+
+
+if __name__ == '__main__':
+    main()
+

@@ -1,25 +1,16 @@
 from app.core.exceptions import EXC, ErrorCode
 from app.core.logging import logger
-from fastapi import Depends
+from fastapi import Depends, Request
 
-# from app.models import DataMatrixCodeCreate, DataMatrixCode, DataMatrixCodePublic, DataMatrixCodeProblem
-
-from app.models import Country, DataMatrixCodeCreate
-
-# from app.models import GTIN, GTINPublic
 from app.core.exceptions import EXC
 from app.api import deps
-# from app.models.dmcode import validate_data_matrix
-
-from fastapi import APIRouter
 
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-
-# from app import crud
-# from app import models
 from app import crud, models
 from fastapi import APIRouter
+from app.core.app_state import app_state
+import asyncio
 
 router = APIRouter()
 
@@ -65,3 +56,19 @@ async def set_custom_time(*, dm_code: models.DataMatrixCodeUpdate, db: AsyncSess
 
     return result
 
+@router.post("/recieve-dmcode")
+async def receive_dmcode(request: Request) -> None:
+    body = await request.body()
+    data = body.decode().strip()
+
+    dmcode = models.DataMatrixCodeCreate(dm_code=data)
+    task_1 = asyncio.create_task(app_state.handle_dmcode(dmcode_create=dmcode))
+    task_2 = asyncio.create_task(app_state.handle_dmcode_confirmation())
+    # await app_state.handle_dmcode(dmcode_create=dmcode)
+    # await app_state.handle_dmcode_confirmation()
+    # print(f"Received DataMatrix: {data}")
+    # logger.info(f'Received DataMatrix: {data}')
+    # return 'sas'
+
+
+    # return JSONResponse(content={"data": data, "message": message}, status_code=200)

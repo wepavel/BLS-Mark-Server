@@ -89,8 +89,8 @@ async def add_dmcodes(
         except Exception as e:
             raise EXC(ErrorCode.DMCodeAddingError, details={'reason': str(e)})
 
-    problem_dm_codes.append(models.DataMatrixCodeProblem(dm_code='test_code_1', problem='Test Problem 1'))
-    problem_dm_codes.append(models.DataMatrixCodeProblem(dm_code='test_code_2', problem='Test Problem 2'))
+    # problem_dm_codes.append(models.DataMatrixCodeProblem(dm_code='test_code_1', problem='Test Problem 1'))
+    # problem_dm_codes.append(models.DataMatrixCodeProblem(dm_code='test_code_2', problem='Test Problem 2'))
 
     return problem_dm_codes
 
