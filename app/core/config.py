@@ -51,6 +51,8 @@ class Settings(BaseSettings):
 
     # Devices
     SCANNER_ADRESS: str = os.getenv('SCANNER_ADRESS', '169.254.36.51')
+    PRINTER_ADRESS: str = os.getenv('PRINTER_ADRESS', '169.254.36.50')
+    PRINTER_PORT: int = os.getenv('PRINTER_PORT', 8032)
 
 try:
     settings = Settings()

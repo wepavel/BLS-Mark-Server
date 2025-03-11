@@ -5,6 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlmodel import SQLModel
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
+from app.core.logging import logger
 
 from app.db.base_class import Base
 from app.api import deps
@@ -37,6 +38,21 @@ class CRUDBase(Generic[ModelType, CreateModelType, UpdateModelType]):
         * `schema`: A SQLModel by Tiangolo (schema) class
         """
         self.model = model
+
+    @staticmethod
+    async def check_database_connection(db: AsyncSession) -> bool:
+        try:
+            # Пытаемся выполнить простой запрос
+            result = await db.exec(select(1))
+
+            # Если запрос выполнен успешно, возвращаем True
+            if result.first()[0] == 1:
+                return True
+            return False
+        except Exception as e:
+            # В случае ошибки выводим сообщение и возвращаем False
+            logger.error(f"Error connect to database: {str(e)}")
+            return False
 
     async def get(self, db: AsyncSession, id: Any) -> ModelType | None:
         result = await db.exec(select(self.model).where(self.model.id == id))

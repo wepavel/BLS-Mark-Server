@@ -104,17 +104,19 @@
 from ping3 import ping
 from datetime import datetime, timezone
 import pytz
-
+import asyncio
 
 async def ping_device(ip_address: str) -> bool:
     try:
-        response_time = ping(ip_address, timeout=2)
-        if response_time:
-            return True
-        else:
-            return False
+        response_time = await asyncio.to_thread(ping, ip_address, timeout=1)
+        print(f'Address: {ip_address} ping time: {response_time}')
+
+        return response_time is not None and response_time is not False
+
     except Exception as e:
+        print(f"Error pinging {ip_address}: {e}")
         return False
+
 
 
 current_timezone = pytz.timezone('Europe/Moscow')
