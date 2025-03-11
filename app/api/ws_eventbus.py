@@ -110,10 +110,12 @@ ws_eventbus = WSConnectionManager()
 
 async def send_personal_heartbeat_message(client_id: str):
     is_scanner = await ping_device(settings.SCANNER_ADRESS)
+    is_printer = await ping_device(settings.PRINTER_ADRESS)
     devices = [
-        Device(name='printer', ping=random.choice([True, False]), heartbeat=random.choice([True, False])),
+        Device(name='printer', ping=is_printer, heartbeat=is_printer),
         Device(name='scanner', ping=is_scanner, heartbeat=is_scanner),
         Device(name='plc', ping=random.choice([True, False]), heartbeat=random.choice([True, False])),
+        Device(name='database', ping=random.choice([True, False]), heartbeat=random.choice([True, False])),
     ]
 
     device_dicts = [device.model_dump() for device in devices]

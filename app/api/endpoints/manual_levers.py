@@ -23,7 +23,7 @@ async def send_personal_heartbeat_message(client_id: str) -> None:
 async def broadcast_message_msg(msg: str) -> None:
     await broadcast_msg(msg)
 
-@router.post('/send-dmcode/{client_id:path}/{dm_code:path}/{entry:path}')
+@router.post('/send-dmcode/{client_id}/{entry}/{dm_code:path}')
 async def send_dmcode(
         client_id: str,
         entry: bool,
