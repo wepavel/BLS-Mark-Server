@@ -1,6 +1,7 @@
 # from datetime import datetime
 # from app.models import DataMatrixCode, CountryEnum, Country, DataMatrixCodePublic
 # import re
+import logging
 
 # import ulid
 #
@@ -109,12 +110,12 @@ import asyncio
 async def ping_device(ip_address: str) -> bool:
     try:
         response_time = await asyncio.to_thread(ping, ip_address, timeout=1)
-        print(f'Address: {ip_address} ping time: {response_time}')
+        # print(f'Address: {ip_address} ping time: {response_time}')
 
         return response_time is not None and response_time is not False
 
     except Exception as e:
-        print(f"Error pinging {ip_address}: {e}")
+        logging.warning(f"Error pinging {ip_address}: {e}")
         return False
 
 

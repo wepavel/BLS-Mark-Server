@@ -26,7 +26,7 @@ def html_ws(client_id: str):
             let socket;
 
             function connect() {{
-                socket = new WebSocket('ws://{settings.HOST}:{settings.PORT}/api/v1/streaming/ws-status/{client_id}');
+                socket = new WebSocket('ws://127.0.0.1:{settings.PORT}/api/v1/streaming/ws-status/{client_id}');
     """
     p3 = """
                 socket.onopen = function(e) {
@@ -77,6 +77,6 @@ def html_ws(client_id: str):
     return p0 + p2 + p3
 
 
-@router.get('/get_heartbeat_ws/{client_id}')
+@router.get('/get_ws/{client_id}')
 async def get_ws(client_id: str):
     return HTMLResponse(html_ws(client_id))
