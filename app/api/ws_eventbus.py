@@ -1,14 +1,14 @@
 import asyncio
 from contextlib import asynccontextmanager
 from enum import Enum
-from typing import Any, List
+from typing import Any
 
 from fastapi import WebSocket
 from sqlmodel import Field, SQLModel
 
 from app.core.config import settings
 from app.core.logging import logger
-from app.models import Device, DataMatrixCodePublic, DataMatrixCode
+from app.models import Device, DataMatrixCode, Applicator, DataMatrixCodePublic
 import random
 from app.core.utils import ping_device
 
@@ -35,6 +35,7 @@ class Event(SQLModel, table=False):
             'event': self.name,
             'data': self.data.model_dump(),
         }
+
 
 
 class WSConnectionManager:
@@ -107,7 +108,7 @@ class WSConnectionManager:
 
 ws_eventbus = WSConnectionManager()
 
-
+#--------------HEARTBEAT--------------
 async def send_personal_heartbeat_message(client_id: str):
     is_scanner = await ping_device(settings.SCANNER_ADRESS)
     is_printer = await ping_device(settings.PRINTER_ADRESS)
@@ -149,6 +150,31 @@ async def send_broadcast_heartbeat_message():
     await ws_eventbus.broadcast(event)
 
 
+
+#--------------APPLICATOR STATE--------------
+async def send_applicator_state():
+    applicator = Applicator(
+        remainder=random.randint(0, 100),
+        in_work=random.choice([True, False]),
+        concurrent_product=f'Test_{random.randint(0, 100)}'
+    )
+
+    applicator_event = Event(
+        name='applicator_state',
+        data=EventData(user_id="-1", message=applicator.model_dump(), notification_type=NotificationType.SUCCESS),
+    )
+    event = Event.model_validate_json(applicator_event.model_dump_json())
+
+    await ws_eventbus.broadcast(event)
+
+async def periodic_send_applicator_state():
+    while True:
+        await send_applicator_state()
+        await asyncio.sleep(3)  # Ждем 3 секунды перед следующим вызовом
+
+
+
+#--------------CUSTOM MESSAGES--------------
 async def broadcast_msg(
     msg: str,
     notification_type: NotificationType = NotificationType.INFO,
@@ -159,7 +185,7 @@ async def broadcast_msg(
     )
     await ws_eventbus.broadcast(event)
 
-
+#--------------SEND DMCODE--------------
 async def send_dmcode(client_id: str, dmcode: DataMatrixCode):
     dmcode_public = dmcode.to_public_data_matrix_code()
 
@@ -171,7 +197,7 @@ async def send_dmcode(client_id: str, dmcode: DataMatrixCode):
     )
     event = Event.model_validate_json(broadcast_event.model_dump_json())
     # await ws_eventbus.send_personal_message(client_id, event)
-    await ws_eventbus.send_personal_message(client_id, event)
+    await ws_eventbus.broadcast(event)
 
 async def broadcast_dmcode(dmcode: DataMatrixCode):
     dmcode_public = dmcode.to_public_data_matrix_code()

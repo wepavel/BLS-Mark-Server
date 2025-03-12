@@ -9,6 +9,9 @@
 # from .user_status import UserStatus as UserStatus, statuses as statuses
 from .device import Device
 from .dmcode import DataMatrixCode, DataMatrixCodePublic, DataMatrixCodeCreate, DataMatrixCodeProblem, DataMatrixCodeUpdate, DataMatrixCodeDatetime
+
+from .applicator import Applicator
+
 from .country import Country, CountryEnum
 from .gtin import GTIN, GTINCreate, GTINPublic, GTINBase
 

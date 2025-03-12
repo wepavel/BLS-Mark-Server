@@ -1,13 +1,14 @@
 import asyncio
-from app.models import GTINBase, GTINPublic, DataMatrixCodeCreate, DataMatrixCode
+from app.models import GTIN, GTINPublic, DataMatrixCodeCreate, DataMatrixCode
 from app.core.config import settings
 from app.core.logging import logger
 from app.api.ws_eventbus import broadcast_dmcode as ws_broadcast_dmcode
+from app.api.deps import get_db
 
 class AppState:
     def __init__(self):
         self._is_working = False
-        self._current_gtin: GTINBase | None = None
+        self._current_gtin: GTIN | None = None
         self._timeout = settings.DMCODE_HANDLE_TIMEOUT
         self._event_1 = asyncio.Event()
         self._event_2 = asyncio.Event()
@@ -21,11 +22,11 @@ class AppState:
     def get_working(self) -> bool:
         return self._is_working
 
-    def set_current_gtin(self, current_gtin: GTINBase) -> None:
+    def set_current_gtin(self, current_gtin: GTIN) -> None:
         self._current_gtin = current_gtin
 
     def get_current_gtin(self) -> GTINPublic | None:
-        return self._current_gtin
+        return self._current_gtin.to_gtin_public()
 
     def set_dmcode(self, dmcode_create: DataMatrixCodeCreate) -> None:
         dm_code = DataMatrixCode.from_data_matrix_code_create(dmcode_create)
