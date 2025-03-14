@@ -6,7 +6,7 @@ from app.core.exceptions import EXC
 from app.api import deps
 
 from sqlmodel.ext.asyncio.session import AsyncSession
-
+from pydantic import ValidationError
 from app import crud, models
 from fastapi import APIRouter
 from app.core.app_state import app_state
@@ -64,11 +64,27 @@ async def receive_dmcode(request: Request) -> None:
     dmcode = models.DataMatrixCodeCreate(dm_code=data)
     task_1 = asyncio.create_task(app_state.handle_dmcode(dmcode_create=dmcode))
     task_2 = asyncio.create_task(app_state.handle_dmcode_confirmation())
-    # await app_state.handle_dmcode(dmcode_create=dmcode)
-    # await app_state.handle_dmcode_confirmation()
-    # print(f"Received DataMatrix: {data}")
-    # logger.info(f'Received DataMatrix: {data}')
-    # return 'sas'
+
+@router.post("/set-system-working/{gtin:path}")
+async def set_system_working(gtin: str, db: AsyncSession = Depends(deps.get_db)) -> None:
+    if app_state.get_working():
+        app_state.set_working(False)
+        app_state.set_current_gtin(gtin=None)
+        return
+
+    try:
+        gtin_create = models.GTINCreate(code=gtin)
+    except ValidationError as e:
+        raise EXC(ErrorCode.GTINValidationError, details={'reason': str(e)})
+
+    if not models.GTIN.from_gtin_create(gtin_create):
+        raise EXC(ErrorCode.GTINValidationError)
+
+    gtin_db = await crud.gtin.get_by_code(gtin=gtin, db=db)
+    if not gtin_db:
+        raise EXC(ErrorCode.GTINNotExists)
+
+    app_state.set_current_gtin(gtin=gtin_db)
 
 
-    # return JSONResponse(content={"data": data, "message": message}, status_code=200)
+    app_state.set_working(True)

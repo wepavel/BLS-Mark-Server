@@ -2,7 +2,7 @@ import asyncio
 from app.models import GTIN, GTINPublic, DataMatrixCodeCreate, DataMatrixCode
 from app.core.config import settings
 from app.core.logging import logger
-from app.api.ws_eventbus import broadcast_dmcode as ws_broadcast_dmcode
+# from app.api.ws_eventbus import broadcast_dmcode as ws_broadcast_dmcode
 from app.api.deps import get_db
 
 class AppState:
@@ -22,11 +22,11 @@ class AppState:
     def get_working(self) -> bool:
         return self._is_working
 
-    def set_current_gtin(self, current_gtin: GTIN) -> None:
-        self._current_gtin = current_gtin
+    def set_current_gtin(self, gtin: GTIN | None) -> None:
+        self._current_gtin = gtin
 
     def get_current_gtin(self) -> GTINPublic | None:
-        return self._current_gtin.to_gtin_public()
+        return self._current_gtin.to_gtin_public() if self._current_gtin else None
 
     def set_dmcode(self, dmcode_create: DataMatrixCodeCreate) -> None:
         dm_code = DataMatrixCode.from_data_matrix_code_create(dmcode_create)
@@ -65,6 +65,7 @@ class AppState:
             async with self._lock:
                 if self._dmcode:
                     logger.info('DMCode successfully received')
+                    from app.api.ws_eventbus import broadcast_dmcode as ws_broadcast_dmcode
                     await ws_broadcast_dmcode(self._dmcode)
                 else:
                     logger.warning('DMCode is None after successful event processing')

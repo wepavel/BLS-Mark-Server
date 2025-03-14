@@ -112,7 +112,7 @@ async def add_gtin(*, gtin: models.GTINCreate, db: AsyncSession = Depends(deps.g
     return result_gtin.to_gtin_public()
 
 
-@router.get('/is-gtin/{gtin_encoded}')
+@router.get('/is-gtin/{gtin_encoded:path}')
 async def is_gtin(*, gtin_encoded: str, db: AsyncSession = Depends(deps.get_db)) -> bool:
     """
     Check if a GTIN exists in DB

@@ -105,7 +105,7 @@ def main() -> None:
         app,
         host=str(settings.HOST),
         port=settings.PORT,
-        log_config='./log_config.json',
+        log_config='log_config.json',
     )  # ,log_config='./app/log_config.json'
 
 
