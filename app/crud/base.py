@@ -9,7 +9,7 @@ from app.core.logging import logger
 
 from app.db.base_class import Base
 from app.api import deps
-
+from sqlmodel import text
 
 ModelType = TypeVar('ModelType', bound=Base)
 CreateModelType = TypeVar('CreateModelType', bound=SQLModel)
@@ -42,16 +42,18 @@ class CRUDBase(Generic[ModelType, CreateModelType, UpdateModelType]):
     @staticmethod
     async def check_database_connection(db: AsyncSession) -> bool:
         try:
-            # Пытаемся выполнить простой запрос
-            result = await db.exec(select(1))
+            # Используем text() для создания текстового SQL-выражения
+            result = await db.exec(text("SELECT 1"))
 
-            # Если запрос выполнен успешно, возвращаем True
-            if result.first()[0] == 1:
-                return True
-            return False
+            # Получаем первый результат
+            row = result.scalar()
+
+            # Проверяем, равен ли результат 1
+            return row == 1
+
         except Exception as e:
             # В случае ошибки выводим сообщение и возвращаем False
-            logger.error(f"Error connect to database: {str(e)}")
+            logger.error(f"Error connecting to database: {str(e)}")
             return False
 
     async def get(self, db: AsyncSession, id: Any) -> ModelType | None:

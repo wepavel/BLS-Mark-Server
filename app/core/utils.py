@@ -115,7 +115,7 @@ async def ping_device(ip_address: str) -> bool:
         return response_time is not None and response_time is not False
 
     except Exception as e:
-        logging.warning(f"Error pinging {ip_address}: {e}")
+        # logging.warning(f"Error pinging {ip_address}: {e}")
         return False
 
 

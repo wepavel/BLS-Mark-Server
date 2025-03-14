@@ -8,7 +8,7 @@ class GTINBase(SQLModel, table=False):
     code: str = Field(min_length=14, max_length=14)
 
 class GTINCreate(GTINBase, table=False):
-    name: str
+    name: str = ''
     desc: str = Field(default='', max_length=32000)
 
 class GTINPublic(GTINCreate, table=False):

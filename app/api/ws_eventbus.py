@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from enum import Enum
+from math import remainder
 from typing import Any
 
 from fastapi import WebSocket
@@ -11,6 +12,9 @@ from app.core.logging import logger
 from app.models import Device, DataMatrixCode, Applicator, DataMatrixCodePublic
 import random
 from app.core.utils import ping_device
+from .deps import get_db
+from app import crud
+from app.core.app_state import app_state
 
 class NotificationType(str, Enum):
     CRITICAL = 'CRITICAL'
@@ -112,11 +116,14 @@ ws_eventbus = WSConnectionManager()
 async def send_personal_heartbeat_message(client_id: str):
     is_scanner = await ping_device(settings.SCANNER_ADRESS)
     is_printer = await ping_device(settings.PRINTER_ADRESS)
+    async for db in get_db():
+        is_database = await crud.gtin.check_database_connection(db)
+
     devices = [
         Device(name='printer', ping=is_printer, heartbeat=is_printer),
         Device(name='scanner', ping=is_scanner, heartbeat=is_scanner),
         Device(name='plc', ping=random.choice([True, False]), heartbeat=random.choice([True, False])),
-        Device(name='database', ping=random.choice([True, False]), heartbeat=random.choice([True, False])),
+        Device(name='database', ping=is_database, heartbeat=is_database),
     ]
 
     device_dicts = [device.model_dump() for device in devices]
@@ -153,10 +160,16 @@ async def send_broadcast_heartbeat_message():
 
 #--------------APPLICATOR STATE--------------
 async def send_applicator_state():
+    current_gtin = app_state.get_current_gtin()
+    remainder = 0
+    async for db in get_db():
+        remainder = await crud.gtin.get_remainder(db=db, gtin=current_gtin.code) if current_gtin else 0
+
+
     applicator = Applicator(
-        remainder=random.randint(0, 100),
-        in_work=random.choice([True, False]),
-        concurrent_product=f'Test_{random.randint(0, 100)}'
+        remainder=remainder,
+        in_work=app_state.get_working(),
+        current_product=current_gtin.name if current_gtin else None,
     )
 
     applicator_event = Event(

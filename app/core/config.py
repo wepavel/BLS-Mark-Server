@@ -11,7 +11,7 @@ from typing import Any
 class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
-        env_file=['../../.env', '../.env', '.env'],
+        env_file=['../../.env', '../.env', '.env', os.path.join(os.path.dirname(__file__), '.env'),],
         env_file_encoding='utf-8',
         extra='ignore',
         case_sensitive=True,
