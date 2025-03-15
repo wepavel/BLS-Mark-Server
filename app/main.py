@@ -85,11 +85,11 @@ app.add_middleware(
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 def check_license() -> bool:
-    serial = LicenseManager.get_motherboard_serial()
-    current_hash =  LicenseManager.create_augmented_hash(serial,  LicenseManager._default_salt)
-
-    stored_hash =  LicenseManager.read_hash_from_registry()
-    if stored_hash != current_hash:
+    # serial = LicenseManager.get_motherboard_serial()
+    # current_hash =  LicenseManager.create_augmented_hash(serial,  LicenseManager._default_salt)
+    license_manager = LicenseManager()
+    valid_license =  license_manager.check_license(LicenseManager._default_salt)
+    if not valid_license:
         logger.error('License validation failed: stored key does not match the expected key.')
         return False
     else:
