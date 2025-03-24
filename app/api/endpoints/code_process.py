@@ -79,8 +79,6 @@ async def send_tcp_message(message: str):
 @router.post("/set-system-working/{gtin:path}")
 async def set_system_working(gtin: str, db: AsyncSession = Depends(deps.get_db)) -> None:
     if app_state.get_working():
-        app_state.set_working(False)
-        app_state.set_current_gtin(gtin=None)
         return
 
     try:
@@ -99,3 +97,10 @@ async def set_system_working(gtin: str, db: AsyncSession = Depends(deps.get_db))
 
 
     app_state.set_working(True)
+
+@router.post("/set-system-stop")
+async def set_system_stop(gtin: str, db: AsyncSession = Depends(deps.get_db)) -> None:
+    if app_state.get_working():
+        app_state.set_working(False)
+        app_state.set_current_gtin(gtin=None)
+    return
