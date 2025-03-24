@@ -14,6 +14,10 @@ class GTINCreate(GTINBase, table=False):
 class GTINPublic(GTINCreate, table=False):
     pass
 
+class GTINRemainder(GTINBase, table=False):
+    name: str = ''
+    remainder: int = Field(default=0)
+
 class GTIN(Base, table=True):
     id: int | None = Field(default=None, primary_key=True, index=True)
     code: str = Field(index=True, unique=True, min_length=14, max_length=14)

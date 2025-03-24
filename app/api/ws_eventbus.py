@@ -15,6 +15,7 @@ from app.core.utils import ping_device
 from .deps import get_db
 from app import crud
 from app.core.app_state import app_state
+from app.api.tcp_client import tcp_connection_manager, TCPDevice
 
 class NotificationType(str, Enum):
     CRITICAL = 'CRITICAL'
@@ -116,6 +117,7 @@ ws_eventbus = WSConnectionManager()
 async def send_personal_heartbeat_message(client_id: str):
     is_scanner = await ping_device(settings.SCANNER_ADRESS)
     is_printer = await ping_device(settings.PRINTER_ADRESS)
+
     async for db in get_db():
         is_database = await crud.gtin.check_database_connection(db)
 
@@ -164,7 +166,6 @@ async def send_applicator_state():
     remainder = 0
     async for db in get_db():
         remainder = await crud.gtin.get_remainder(db=db, gtin=current_gtin.code) if current_gtin else 0
-
 
     applicator = Applicator(
         remainder=remainder,

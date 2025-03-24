@@ -20,6 +20,7 @@ from app.db.session import SessionLocal
 from app.core.license_manager import LicenseManager
 from app.core.logging import logger
 from app.api.ws_eventbus import periodic_send_applicator_state
+from app.api.tcp_client import tcp_connection_manager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -27,7 +28,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     db = SessionLocal()
     await init_db(db)
     task = asyncio.create_task(periodic_send_applicator_state())
-    app.state.background_tasks = [task]
+    app_state_task = asyncio.create_task(periodic_send_applicator_state())
+    app.state.background_tasks = [task, app_state_task]
 
     yield
     # server = TCPServer('127.0.0.1', 8888)
@@ -45,7 +47,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     #     access_logger.handlers[0].setFormatter(UvicornAccessLogFormatter())
     #
     yield
-
+    await tcp_connection_manager.close_all()
     # await event_bus.close_all_connections()
     # Отменяем все фоновые задачи при завершении работы приложения
     for task in app.state.background_tasks:
