@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     PRINTER_ADRESS: str = os.getenv('PRINTER_ADRESS', '169.254.36.50')
     PRINTER_PORT: int = os.getenv('PRINTER_PORT', 8032)
 
+    DMCODE_BUFFER_SIZE: int = 100  # Максимальный размер буфера
+    DMCODE_BUFFER_THRESHOLD: int = 20  # Порог для пополнения буфера
+    BUFFER_CHECK_INTERVAL: int = 60  # Интервал проверки буфера в секундах
+
 try:
     settings = Settings()
 except ValidationError as e:

@@ -188,6 +188,52 @@ class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeU
 
         return public_objs
 
+    async def get_codes_by_day(self, db: AsyncSession, gtin: str, date: datetime) -> list[DataMatrixCodePublic]:
+        query = (
+            select(DataMatrixCode, models.GTIN.name.label("product_name"))
+            .join(models.GTIN, DataMatrixCode.gtin == models.GTIN.code)
+            .where(DataMatrixCode.gtin == gtin)
+            .where(DataMatrixCode.entry_time.isnot(None))
+            .where(func.extract('year', DataMatrixCode.entry_time) == date.year)
+            .where(func.extract('month', DataMatrixCode.entry_time) == date.month)
+            .where(func.extract('day', DataMatrixCode.entry_time) == date.day)
+            .order_by(DataMatrixCode.entry_time)
+        )
+
+        result = await db.exec(query)
+        rows = result.fetchall()
+
+        public_objs = []
+        for dm_code, product_name in rows:
+            public_obj = dm_code.to_public_data_matrix_code()
+            public_obj.product_name = product_name or "Unknown Product"
+            public_objs.append(public_obj)
+
+        return public_objs
+
+    async def get_remaind_codes_by_gtin(self, *, db: AsyncSession, gtin: str, skip: int = 0, limit: int = 100) -> list[DataMatrixCodePublic]:
+        query = (
+            select(DataMatrixCode, models.GTIN.name.label("product_name"))
+            .join(models.GTIN, DataMatrixCode.gtin == models.GTIN.code)
+            .where(DataMatrixCode.gtin == gtin)
+            .where(func.coalesce(DataMatrixCode.entry_time, None) == None)
+            .order_by(DataMatrixCode.upload_time)
+            .offset(skip)
+            .limit(limit)
+        )
+
+        result = await db.exec(query)  # Используем execute вместо exec
+        rows = result.all()  # Используем all() вместо fetchall()
+
+        return [
+            DataMatrixCodePublic(
+                **dm_code.to_public_data_matrix_code().dict(),
+                product_name=product_name or "Unknown Product"
+            )
+            for dm_code, product_name in rows
+        ]
+
+        # return public_objs
 
 dmcode =  CRUDUDmCode(DataMatrixCode)
 

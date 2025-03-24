@@ -2,7 +2,8 @@ import asyncio
 from app.models import GTIN, GTINPublic, DataMatrixCodeCreate, DataMatrixCode
 from app.core.config import settings
 from app.core.logging import logger
-# from app.api.ws_eventbus import broadcast_dmcode as ws_broadcast_dmcode
+from collections import deque
+from app import crud
 from app.api.deps import get_db
 
 class AppState:
@@ -15,7 +16,12 @@ class AppState:
         self._dmcode: DataMatrixCode | None = None
         self._lock = asyncio.Lock()
         self._processing_task: asyncio.Task | None = None
+        #-----------DMCode Queue
+        self._dmcode_buffer = deque(maxlen=settings.DMCODE_BUFFER_SIZE)
+        self._buffer_lock = asyncio.Lock()
+        self._buffer_replenish_task: asyncio.Task | None = None
 
+    #------------------Base funcs------------------
     def set_working(self, is_working: bool) -> None:
         self._is_working = is_working
 
@@ -27,7 +33,40 @@ class AppState:
 
     def get_current_gtin(self) -> GTINPublic | None:
         return self._current_gtin.to_gtin_public() if self._current_gtin else None
+    #---------------DMCode processing---------------
+    async def initialize_buffer(self):
+        await self._replenish_buffer()
+        self._buffer_replenish_task = asyncio.create_task(self._buffer_monitor())
 
+    async def _replenish_buffer(self):
+        async with self._buffer_lock:
+            needed_codes = settings.DMCODE_BUFFER_SIZE - len(self._dmcode_buffer)
+            if needed_codes > 0:
+                async for db in get_db():
+                    new_codes = await crud.dmcode.get_remaind_codes_by_gtin(db=db, gtin=self._current_gtin)
+                self._dmcode_buffer.extend(new_codes)
+
+    async def _buffer_monitor(self):
+        while True:
+            if len(self._dmcode_buffer) < settings.DMCODE_BUFFER_THRESHOLD:
+                await self._replenish_buffer()
+            await asyncio.sleep(settings.BUFFER_CHECK_INTERVAL)
+
+    async def get_next_dmcode(self) -> DataMatrixCode | None:
+        async with self._buffer_lock:
+            return self._dmcode_buffer.popleft() if self._dmcode_buffer else None
+
+    async def handle_dmcode(self, dmcode_create: DataMatrixCodeCreate) -> None:
+        async with self._lock:
+            dm_code = await self.get_next_dmcode()
+            if dm_code is None:
+                logger.warning('No available DataMatrixCode in buffer')
+                return
+            self._dmcode = dm_code
+            self._event_1.set()
+        await self._start_processing()
+
+    #----------------------------
     def set_dmcode(self, dmcode_create: DataMatrixCodeCreate) -> None:
         dm_code = DataMatrixCode.from_data_matrix_code_create(dmcode_create)
         if dm_code is None:

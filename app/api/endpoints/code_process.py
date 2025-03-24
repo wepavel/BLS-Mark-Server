@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from app import crud, models
 from fastapi import APIRouter
 from app.core.app_state import app_state
+from ..tcp_client import tcp_connection_manager, TCPDevice
 import asyncio
 
 router = APIRouter()
@@ -64,6 +65,16 @@ async def receive_dmcode(request: Request) -> None:
     dmcode = models.DataMatrixCodeCreate(dm_code=data)
     task_1 = asyncio.create_task(app_state.handle_dmcode(dmcode_create=dmcode))
     task_2 = asyncio.create_task(app_state.handle_dmcode_confirmation())
+
+@router.post("/send-tcp-message/{message:path}")
+async def send_tcp_message(message: str):
+    client = await tcp_connection_manager.get_connection(TCPDevice.PRINTER)
+    success = await client.send_message(message)
+    if success:
+        return {"status": "success", "message": f"Сообщение успешно отправлено на устройство"}
+    else:
+        raise EXC(ErrorCode.DMCodeAddingError)
+
 
 @router.post("/set-system-working/{gtin:path}")
 async def set_system_working(gtin: str, db: AsyncSession = Depends(deps.get_db)) -> None:

@@ -13,5 +13,5 @@ from .dmcode import DataMatrixCode, DataMatrixCodePublic, DataMatrixCodeCreate, 
 from .applicator import Applicator
 
 from .country import Country, CountryEnum
-from .gtin import GTIN, GTINCreate, GTINPublic, GTINBase
+from .gtin import GTIN, GTINCreate, GTINPublic, GTINBase, GTINRemainder
 

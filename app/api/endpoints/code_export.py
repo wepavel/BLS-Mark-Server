@@ -93,3 +93,12 @@ async def get_all_dmcodes(*, db: AsyncSession = Depends(deps.get_db)) -> list[mo
     dmcode_list = await crud.dmcode.get_multi(db=db)
 
     return dmcode_list
+
+@router.get('/get-all-gtins-with-remainds')
+async def get_all_dmcodes(*, db: AsyncSession = Depends(deps.get_db)) -> list[models.GTINRemainder]:
+    """
+    Get last 100 dmcodes from database
+    """
+    dmcode_list = await crud.gtin.get_all_gtins_with_remainder(db=db)
+
+    return dmcode_list
