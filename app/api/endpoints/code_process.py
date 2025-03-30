@@ -93,14 +93,12 @@ async def set_system_working(gtin: str, db: AsyncSession = Depends(deps.get_db))
     if not gtin_db:
         raise EXC(ErrorCode.GTINNotExists)
 
-    app_state.set_current_gtin(gtin=gtin_db)
+    # app_state.set_current_gtin(gtin=gtin_db)
 
-
-    app_state.set_working(True)
+    await app_state.set_working(gtin=gtin_db)
 
 @router.post("/set-system-stop")
 async def set_system_stop() -> None:
     if app_state.get_working():
-        app_state.set_working(False)
-        app_state.set_current_gtin(gtin=None)
+        await app_state.set_stop()
     return
