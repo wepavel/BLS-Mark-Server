@@ -2,7 +2,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app.crud.base import CRUDBase
 from app import crud, models
 from app.models import DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodePublic, GTINPublic, DataMatrixCodeUpdate
-from sqlmodel import select, func
+from sqlmodel import select, func, exists
 from typing import Any
 from datetime import datetime
 
@@ -152,12 +152,26 @@ class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeU
 
         return result
 
-    async def get_unique_export_dates(self, db: AsyncSession, gtin: str, date: datetime) -> list[datetime]:
+    async def get_unique_entry_dates(self, db: AsyncSession, gtin: str, date: datetime) -> list[datetime]:
         query = select(func.date(DataMatrixCode.entry_time)).distinct()\
             .where(DataMatrixCode.gtin == gtin)\
-            .where(DataMatrixCode.entry_time.isnot(None))\
+            .where(DataMatrixCode.entry_time.isnot(None)) \
+            .where(DataMatrixCode.export_time.is_(None)) \
             .where(func.extract('year', DataMatrixCode.entry_time) == date.year)\
             .where(func.extract('month', DataMatrixCode.entry_time) == date.month)\
+            .order_by(func.date(DataMatrixCode.entry_time))
+
+        result = await db.exec(query)
+        results = result.fetchall()
+
+        return results
+
+    async def get_unique_entry_dates_with_export(self, db: AsyncSession, gtin: str, date: datetime) -> list[datetime]:
+        query = select(func.date(DataMatrixCode.entry_time)).distinct() \
+            .where(DataMatrixCode.gtin == gtin) \
+            .where(DataMatrixCode.entry_time.isnot(None)) \
+            .where(func.extract('year', DataMatrixCode.entry_time) == date.year) \
+            .where(func.extract('month', DataMatrixCode.entry_time) == date.month) \
             .order_by(func.date(DataMatrixCode.entry_time))
 
         result = await db.exec(query)
@@ -171,6 +185,7 @@ class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeU
             .join(models.GTIN, DataMatrixCode.gtin == models.GTIN.code)
             .where(DataMatrixCode.gtin == gtin)
             .where(DataMatrixCode.entry_time.isnot(None))
+            .where(DataMatrixCode.export_time.is_(None))
             .where(func.extract('year', DataMatrixCode.entry_time) == date.year)
             .where(func.extract('month', DataMatrixCode.entry_time) == date.month)
             .where(func.extract('day', DataMatrixCode.entry_time) == date.day)
@@ -188,7 +203,7 @@ class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeU
 
         return public_objs
 
-    async def get_codes_by_day(self, db: AsyncSession, gtin: str, date: datetime) -> list[DataMatrixCodePublic]:
+    async def get_codes_by_day_with_export(self, db: AsyncSession, gtin: str, date: datetime) -> list[DataMatrixCodePublic]:
         query = (
             select(DataMatrixCode, models.GTIN.name.label("product_name"))
             .join(models.GTIN, DataMatrixCode.gtin == models.GTIN.code)
@@ -216,7 +231,7 @@ class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeU
             select(DataMatrixCode, models.GTIN.name.label("product_name"))
             .join(models.GTIN, DataMatrixCode.gtin == models.GTIN.code)
             .where(DataMatrixCode.gtin == gtin)
-            .where(func.coalesce(DataMatrixCode.entry_time, None) == None)
+            .where(DataMatrixCode.entry_time.is_(None))
             .order_by(DataMatrixCode.upload_time)
             .offset(skip)
             .limit(limit)
@@ -225,15 +240,25 @@ class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeU
         result = await db.exec(query)  # Используем execute вместо exec
         rows = result.all()  # Используем all() вместо fetchall()
 
-        return [
-            DataMatrixCodePublic(
-                **dm_code.to_public_data_matrix_code().dict(),
-                product_name=product_name or "Unknown Product"
-            )
-            for dm_code, product_name in rows
-        ]
+        public_objs = []
+        for dm_code, product_name in rows:
+            public_obj = dm_code.to_public_data_matrix_code()
+            public_obj.product_name = product_name or "Unknown Product"
+            public_objs.append(public_obj)
 
-        # return public_objs
+        return public_objs
+
+    async def is_code_printed_exported(self, *, db: AsyncSession,  dm_code: str) -> bool:
+
+        query = exists().where(
+            (DataMatrixCode.dm_code == dm_code) &
+            (DataMatrixCode.entry_time.is_(None)) &
+            (DataMatrixCode.export_time.is_(None))
+        ).select()
+
+        result = await db.exec(select(query))
+        return result.one()
+
 
 dmcode =  CRUDUDmCode(DataMatrixCode)
 

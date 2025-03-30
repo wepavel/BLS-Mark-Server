@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = os.getenv('LOG_LEVEL', 'DEBUG')
     # LOG_PATH: str = os.getenv('LOG_PATH', './logs')
 
-    DMCODE_HANDLE_TIMEOUT: float = os.getenv('DMCODE_HANDLE_TIMEOUT', 0.5)
+    DMCODE_HANDLE_TIMEOUT: float = os.getenv('DMCODE_HANDLE_TIMEOUT', 0.3)
 
     SESSION_EXPIRE_MINUTES: int = 60 * 24 * 365  # 1 year
 
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
 
     DMCODE_BUFFER_SIZE: int = 100  # Максимальный размер буфера
     DMCODE_BUFFER_THRESHOLD: int = 20  # Порог для пополнения буфера
-    BUFFER_CHECK_INTERVAL: int = 60  # Интервал проверки буфера в секундах
+    BUFFER_CHECK_INTERVAL: int = 5  # Интервал проверки буфера в секундах
 
 try:
     settings = Settings()

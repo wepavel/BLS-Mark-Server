@@ -21,6 +21,7 @@ from app.core.license_manager import LicenseManager
 from app.core.logging import logger
 from app.api.ws_eventbus import periodic_send_applicator_state
 from app.api.tcp_client import tcp_connection_manager
+from app.core.app_state import app_state
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -28,8 +29,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     db = SessionLocal()
     await init_db(db)
     task = asyncio.create_task(periodic_send_applicator_state())
-    app_state_task = asyncio.create_task(periodic_send_applicator_state())
-    app.state.background_tasks = [task, app_state_task]
+    # app_state_task = asyncio.create_task(app_state.initialize_buffer())
+    app.state.background_tasks = [task]
 
     yield
     # server = TCPServer('127.0.0.1', 8888)

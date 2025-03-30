@@ -78,6 +78,22 @@ class DataMatrixCode(Base, table=True):
         parsed_data = validate_data_matrix(data.dm_code)
         return parsed_data if parsed_data else None
 
+    @classmethod
+    def empty_code(cls) -> Optional['DataMatrixCode']:
+        return DataMatrixCode(
+            dm_code='',
+            gtin='',
+            product_name="Unknown Product",
+            serial_number='',
+            country=0,
+            is_long_format=False,
+            verification_key='',
+            verification_key_value='',
+            upload_time=datetime.now(timezone.utc),
+            entry_time=None,
+            export_time=None,
+        )
+
 
 def parse_data_matrix(data_matrix: str) -> DataMatrixCode:
     clean_code = normalize_gs(data_matrix)
@@ -161,3 +177,12 @@ def normalize_gs(input_str: str) -> str:
         input_str = input_str[1:]
     return input_str.replace(chr(29), "<GS>")
 
+def export_normalize_gs(input_str: str) -> str:
+    if input_str.startswith(chr(232)):
+        input_str = input_str[1:]
+        input_str = chr(29) + input_str
+    elif input_str.startswith(chr(29)):
+        pass
+    else:
+        input_str = chr(29) + input_str
+    return input_str
