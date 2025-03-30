@@ -58,7 +58,7 @@ async def get_gtin_entry_dates(*, is_exported: bool, gtin: str, date: str, db: A
     return [date.strftime("%Y_%m_%d") for date in export_dates]
 
 
-@router.get('/get-gtin-dmcodes-by-date/{gtin}/{date}')
+@router.get('/get-gtin-dmcodes-by-date/{is_exported}/{gtin}/{date}')
 async def get_gtin_dmcodes_by_date(*, is_exported: bool, gtin: str, date: str, db: AsyncSession = Depends(deps.get_db)
                                    ) -> list[models.DataMatrixCodePublic]:
     """
