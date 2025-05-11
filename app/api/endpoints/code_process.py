@@ -12,6 +12,7 @@ from fastapi import APIRouter
 from app.core.app_state import app_state
 from ..tcp_client import tcp_connection_manager, TCPDevice
 import asyncio
+import random
 
 router = APIRouter()
 
@@ -59,12 +60,14 @@ async def set_custom_time(*, dm_code: models.DataMatrixCodeUpdate, db: AsyncSess
 
 @router.post("/recieve-dmcode")
 async def receive_dmcode(request: Request) -> None:
+
     body = await request.body()
     data = body.decode().strip()
+    logger.info(f'Received DMCode request: {data}')
 
     dmcode = models.DataMatrixCodeCreate(dm_code=data)
-    task_1 = asyncio.create_task(app_state.handle_dmcode(dmcode_create=dmcode))
-    task_2 = asyncio.create_task(app_state.handle_dmcode_confirmation())
+    asyncio.create_task(app_state.handle_dmcode(dmcode_create=dmcode))
+    # task_2 = asyncio.create_task(app_state.handle_dmcode_confirmation())
 
 @router.post("/send-tcp-message/{message:path}")
 async def send_tcp_message(message: str):
@@ -75,11 +78,18 @@ async def send_tcp_message(message: str):
     else:
         raise EXC(ErrorCode.DMCodeAddingError)
 
+@router.post("/rotate_dmcode")
+async def rotate_dmcode():
+    await app_state.rotate_dmcode()
 
 @router.post("/set-system-working/{gtin:path}")
 async def set_system_working(gtin: str, db: AsyncSession = Depends(deps.get_db)) -> None:
     if app_state.get_working():
         return
+
+    if not app_state.is_scanner or not app_state.is_printer \
+        or not app_state.is_plc or not app_state.is_plc:
+        raise EXC(ErrorCode.DeviceDisconnect)
 
     try:
         gtin_create = models.GTINCreate(code=gtin)
@@ -96,6 +106,14 @@ async def set_system_working(gtin: str, db: AsyncSession = Depends(deps.get_db))
     # app_state.set_current_gtin(gtin=gtin_db)
 
     await app_state.set_working(gtin=gtin_db)
+
+@router.post("/group-codes")
+async def group_codes() -> None:
+    """
+    Test delays for BLS Mark Group
+    """
+    sleep_time = round(random.uniform(0, 3), 2)
+    await asyncio.sleep(sleep_time)
 
 @router.post("/set-system-stop")
 async def set_system_stop() -> None:

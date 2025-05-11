@@ -50,6 +50,8 @@ class ErrorCode(Enum):
     SessionNotFound = ErrorResponse(code=4071, msg='Session not found')
     SessionAlreadyExists = ErrorResponse(code=4072, msg='Session already exists')
 
+    DeviceDisconnect = ErrorResponse(code=4073, msg='Some of devices disconnected')
+
     #  4301 - 4320: Resource and Limit Errors
     TooManyRequestsError = ErrorResponse(code=4301, msg='Too Many Requests')
     #  4400: Validation Error

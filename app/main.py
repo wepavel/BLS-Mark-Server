@@ -22,6 +22,9 @@ from app.core.logging import logger
 from app.api.ws_eventbus import periodic_send_applicator_state
 from app.api.tcp_client import tcp_connection_manager
 from app.core.app_state import app_state
+from app.api.tcp_server import TCPServer
+from app.api.scanner_tcp_server import ScannerTCPServer
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -30,7 +33,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await init_db(db)
     task = asyncio.create_task(periodic_send_applicator_state())
     # app_state_task = asyncio.create_task(app_state.initialize_buffer())
-    app.state.background_tasks = [task]
+    tcp_server = TCPServer()
+    task2 = asyncio.create_task(tcp_server.start_server())
+    scanner_tcp_server = ScannerTCPServer()
+    task3 = asyncio.create_task(scanner_tcp_server.start_server())
+
+    task4 = asyncio.create_task(app_state.device_heartbeat())
+
+    app.state.background_tasks = [task, task2, task3, task4]
+
+
 
     yield
     # server = TCPServer('127.0.0.1', 8888)

@@ -158,6 +158,9 @@ from typing import Dict, Optional
 from app.core.logging import logger
 from app.core.config import settings
 from enum import Enum
+import struct
+import socket
+import time
 
 app = FastAPI()
 
@@ -168,14 +171,15 @@ class Message(BaseModel):
 
 
 class TCPClient:
-    def __init__(self, host: str, port: int, device_id: str, timeout: float = 0.5):
+    def __init__(self, host: str, port: int, device_id: str, timeout: float = 0.1):
         self.host = host
         self.port = port
         self.device_id = device_id
         self.timeout = timeout
         self.writer: Optional[asyncio.StreamWriter] = None
         self.reader: Optional[asyncio.StreamReader] = None
-
+        self.lock = asyncio.Lock()
+    #
     async def connect(self):
         try:
             self.reader, self.writer = await asyncio.wait_for(
@@ -188,6 +192,11 @@ class TCPClient:
         except Exception as e:
             logger.error(f'Ошибка при подключении к {self.device_id}: {e}')
 
+    # async def connect(self, buf_size: int):
+    #     self.reader, self.writer = await asyncio.open_connection(self.host, self.port)
+    #     sock = self.writer.get_extra_info('socket')
+    #     sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, buf_size)
+
     async def send_message(self, message: str) -> bool:
         if not self.writer:
             await self.connect()
@@ -196,9 +205,23 @@ class TCPClient:
 
         try:
             message = message.replace('<GS>', chr(29)).replace('<FNC1>', chr(232))
+            # length_prefix = struct.pack('>I', len(message))
+            # self.writer.write(message.encode('utf-8')+length_prefix)
+
             self.writer.write(message.encode('utf-8'))
+            # await self.writer.drain()
+
+            # encoded_message = message.encode('utf-8')
+            # length_prefix = struct.pack('>I', len(message))
+            # self.writer.write(length_prefix + message)
+            # await self.writer.drain()
+            # init = time.time()
             await asyncio.wait_for(self.writer.drain(), timeout=self.timeout)
+            # await asyncio.sleep(0.1)
+            # print(f'Wait for clear buffer: {time.time() - init}')
             logger.info(f'Отправлено на {self.device_id}: {message}')
+            # self.writer.close()
+            # await self.writer.wait_closed()
             return True
         except asyncio.TimeoutError:
             logger.error(f'Таймаут при отправке на {self.device_id}')
@@ -208,6 +231,41 @@ class TCPClient:
         self.writer = None
         self.reader = None
         return False
+
+    # async def send_message(self, message: str) -> bool:
+    #     if not self.writer:
+    #         await self.connect()
+    #     if not self.writer:
+    #         return False
+    #
+    #     try:
+    #         message = message.replace('<GS>', chr(29)).replace('<FNC1>', chr(232))
+    #         encoded_message = message.encode('utf-8')
+    #         length_prefix = struct.pack('>I', len(encoded_message))
+    #
+    #         # Начинаем группировку операций записи
+    #         self.writer.transport.cork()
+    #
+    #         try:
+    #             self.writer.write(length_prefix)
+    #             self.writer.write(encoded_message)
+    #         finally:
+    #             # Завершаем группировку и отправляем данные
+    #             self.writer.transport.uncork()
+    #
+    #         # Ожидаем отправки данных с таймаутом
+    #         await asyncio.wait_for(self.writer.drain(), timeout=self.timeout)
+    #
+    #         logger.info(f'Отправлено на {self.device_id}: {message}')
+    #         return True
+    #     except asyncio.TimeoutError:
+    #         logger.error(f'Таймаут при отправке на {self.device_id}')
+    #     except Exception as e:
+    #         logger.error(f'Ошибка при отправке на {self.device_id}: {e}')
+    #
+    #     self.writer = None
+    #     self.reader = None
+    #     return False
 
     async def close(self):
         if self.writer:
