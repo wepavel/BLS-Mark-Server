@@ -22,12 +22,14 @@ class Settings(BaseSettings):
     # SERVER_HOST: AnyHttpUrl
     HOST: str = os.getenv('HOST', '127.0.0.1')
     PORT: int = os.getenv('PORT', 8001)
+    TCP_PORT: int = os.getenv('TCP_PORT', 7512)
+    SCANNER_TCP_PORT: int = os.getenv('TCP_PORT', 7514)
 
     PROJECT_NAME: str = os.getenv('PROJECT_NAME', 'BLS Mark Server')
     LOG_LEVEL: str = os.getenv('LOG_LEVEL', 'DEBUG')
     # LOG_PATH: str = os.getenv('LOG_PATH', './logs')
 
-    DMCODE_HANDLE_TIMEOUT: float = os.getenv('DMCODE_HANDLE_TIMEOUT', 0.3)
+    DMCODE_HANDLE_TIMEOUT: float = os.getenv('DMCODE_HANDLE_TIMEOUT', 0.4)
 
     SESSION_EXPIRE_MINUTES: int = 60 * 24 * 365  # 1 year
 
@@ -53,10 +55,14 @@ class Settings(BaseSettings):
     SCANNER_ADRESS: str = os.getenv('SCANNER_ADRESS', '169.254.36.51')
     PRINTER_ADRESS: str = os.getenv('PRINTER_ADRESS', '169.254.36.50')
     PRINTER_PORT: int = os.getenv('PRINTER_PORT', 8032)
+    PLC_ADRESS: str = os.getenv('SCANNER_ADRESS', '169.254.36.51')
+    PLC_PORT: int = os.getenv('PRINTER_PORT', 8032)
 
     DMCODE_BUFFER_SIZE: int = 100  # Максимальный размер буфера
     DMCODE_BUFFER_THRESHOLD: int = 20  # Порог для пополнения буфера
+    DMCODE_CONSUMED_BUFFER_SIZE: int = 20
     BUFFER_CHECK_INTERVAL: int = 5  # Интервал проверки буфера в секундах
+    DEVICES_HEARTBEAT_INTERVAL: int = 1
 
 try:
     settings = Settings()

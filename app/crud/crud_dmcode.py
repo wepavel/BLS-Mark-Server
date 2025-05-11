@@ -76,13 +76,15 @@ class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeU
 
 
     async def get_existing_multi(self, *, db: AsyncSession, dm_codes: list[str]) -> list[DataMatrixCodePublic]:
-        query = (
-            select(DataMatrixCode, models.GTIN.name.label("product_name"))
-            .join(models.GTIN, DataMatrixCode.gtin == models.GTIN.code)
-            .where(DataMatrixCode.dm_code.in_(dm_codes))
-        )
-        result = await db.exec(query)
-        rows = result.all()
+        # query = (
+        #     select(DataMatrixCode, models.GTIN.name.label("product_name"))
+        #     .join(models.GTIN, DataMatrixCode.gtin == models.GTIN.code)
+        #     .where(DataMatrixCode.dm_code.in_(dm_codes))
+        # )
+        # result = await db.exec(query)
+        # rows = result.all()
+
+        rows = await self._get_existing_multi(db=db, dm_codes=dm_codes)
 
         public_objs = []
         for row in rows:
@@ -92,6 +94,17 @@ class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeU
             public_objs.append(public_obj)
 
         return public_objs
+
+    async def _get_existing_multi(self, *, db: AsyncSession, dm_codes: list[str]) -> list[DataMatrixCode]:
+        query = (
+            select(DataMatrixCode, models.GTIN.name.label("product_name"))
+            .join(models.GTIN, DataMatrixCode.gtin == models.GTIN.code)
+            .where(DataMatrixCode.dm_code.in_(dm_codes))
+        )
+        result = await db.exec(query)
+        rows = result.all()
+
+        return rows
 
 
     async def get_multi(self, db: AsyncSession, *, skip: int = 0, limit: int = 100) -> list[DataMatrixCodePublic]:
@@ -209,6 +222,7 @@ class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeU
             .join(models.GTIN, DataMatrixCode.gtin == models.GTIN.code)
             .where(DataMatrixCode.gtin == gtin)
             .where(DataMatrixCode.entry_time.isnot(None))
+            # .where(DataMatrixCode.export_time.isnot(None))
             .where(func.extract('year', DataMatrixCode.entry_time) == date.year)
             .where(func.extract('month', DataMatrixCode.entry_time) == date.month)
             .where(func.extract('day', DataMatrixCode.entry_time) == date.day)
@@ -226,38 +240,29 @@ class CRUDUDmCode(CRUDBase[DataMatrixCode, DataMatrixCodeCreate, DataMatrixCodeU
 
         return public_objs
 
-    async def get_remaind_codes_by_gtin(self, *, db: AsyncSession, gtin: str, skip: int = 0, limit: int = 100) -> list[DataMatrixCodePublic]:
+    async def get_remaind_codes_by_gtin(
+            self, db: AsyncSession, gtin: str, exclude_codes: list[str], limit: int
+    ) -> list[DataMatrixCode]:
         query = (
-            select(DataMatrixCode, models.GTIN.name.label("product_name"))
-            .join(models.GTIN, DataMatrixCode.gtin == models.GTIN.code)
+            select(DataMatrixCode)
             .where(DataMatrixCode.gtin == gtin)
+            .where(DataMatrixCode.dm_code.notin_(exclude_codes))  # Изменено с .code на .dm_code
             .where(DataMatrixCode.entry_time.is_(None))
-            .order_by(DataMatrixCode.upload_time)
-            .offset(skip)
+            .where(DataMatrixCode.export_time.is_(None))
             .limit(limit)
         )
+        result = await db.exec(query)
+        return result.all()
 
-        result = await db.exec(query)  # Используем execute вместо exec
-        rows = result.all()  # Используем all() вместо fetchall()
-
-        public_objs = []
-        for dm_code, product_name in rows:
-            public_obj = dm_code.to_public_data_matrix_code()
-            public_obj.product_name = product_name or "Unknown Product"
-            public_objs.append(public_obj)
-
-        return public_objs
-
-    async def is_code_printed_exported(self, *, db: AsyncSession,  dm_code: str) -> bool:
-
-        query = exists().where(
+    async def is_code_printed_exported(self, *, db: AsyncSession, dm_code: str) -> bool:
+        query = select(exists().where(
             (DataMatrixCode.dm_code == dm_code) &
             (DataMatrixCode.entry_time.is_(None)) &
             (DataMatrixCode.export_time.is_(None))
-        ).select()
+        ))
 
-        result = await db.exec(select(query))
-        return result.one()
+        result = await db.exec(query)
+        return not result.one()
 
 
 dmcode =  CRUDUDmCode(DataMatrixCode)

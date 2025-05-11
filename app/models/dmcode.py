@@ -14,8 +14,8 @@ class DataMatrixCodeCreate(DataMatrixCodeBase, table=False):
     pass
 
 class DataMatrixCodeUpdate(DataMatrixCodeBase, table=False):
-    entry_time: datetime = Field(default=None)
-    export_time: datetime = Field(default=None)
+    entry_time: datetime | None = Field(default=None)
+    export_time: datetime | None = Field(default=None)
 
 class DataMatrixCodeDatetime(DataMatrixCodeBase, table=False):
     upload_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

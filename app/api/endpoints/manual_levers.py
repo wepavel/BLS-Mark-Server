@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Path
+from fastapi import APIRouter, Path, Query
 from app.api.ws_eventbus import send_broadcast_heartbeat_message
 from app.api.ws_eventbus import ws_eventbus
-from app.api.ws_eventbus import broadcast_msg
+from app.api.ws_eventbus import broadcast_msg, broadcast_messagebox, NotificationType
 from app.api.ws_eventbus import send_personal_heartbeat_message
 from app.api.ws_eventbus import send_dmcode as ws_send_dmcode
 from app.models import DataMatrixCodePublic
@@ -22,6 +22,14 @@ async def send_personal_heartbeat_message(client_id: str) -> None:
 @router.post('/send-broadcast-message/{msg:path}')
 async def broadcast_message_msg(msg: str) -> None:
     await broadcast_msg(msg)
+
+
+@router.post('/send-broadcast-messagebox/{msg}')
+async def broadcast_messagebox(
+        msg: str,
+        notification_type: NotificationType = Query(...)
+) -> None:
+    await broadcast_messagebox(msg, notification_type)
 
 @router.post('/send-dmcode/{client_id}/{entry}/{dm_code:path}')
 async def send_dmcode(

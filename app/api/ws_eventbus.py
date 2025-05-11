@@ -115,16 +115,25 @@ ws_eventbus = WSConnectionManager()
 
 #--------------HEARTBEAT--------------
 async def send_personal_heartbeat_message(client_id: str):
-    is_scanner = await ping_device(settings.SCANNER_ADRESS)
-    is_printer = await ping_device(settings.PRINTER_ADRESS)
+    # is_scanner = await ping_device(settings.SCANNER_ADRESS)
+    # is_printer = await ping_device(settings.PRINTER_ADRESS)
+    # is_plc = await ping_device(settings.PLC_ADRESS)
+    # is_scanner = app_state.is_scanner
+    # is_printer = app_state.is_printer
+    # is_plc = app_state.is_plc
+    # is_database = app_state.is_database
+    is_scanner = True
+    is_printer = True
+    is_plc = True
+    is_database = True
 
-    async for db in get_db():
-        is_database = await crud.gtin.check_database_connection(db)
+    # async for db in get_db():
+    #     is_database = await crud.gtin.check_database_connection(db)
 
     devices = [
         Device(name='printer', ping=is_printer, heartbeat=is_printer),
         Device(name='scanner', ping=is_scanner, heartbeat=is_scanner),
-        Device(name='plc', ping=random.choice([True, False]), heartbeat=random.choice([True, False])),
+        Device(name='plc', ping=is_plc, heartbeat=is_plc),
         Device(name='database', ping=is_database, heartbeat=is_database),
     ]
 
@@ -199,6 +208,16 @@ async def broadcast_msg(
     )
     await ws_eventbus.broadcast(event)
 
+
+async def broadcast_messagebox(
+    msg: str,
+    notification_type: NotificationType = NotificationType.INFO,
+) -> None:
+    event = Event(
+        name='broadcast_messagebox',
+        data=EventData(user_id='broadcast', message=msg, notification_type=notification_type),
+    )
+    await ws_eventbus.broadcast(event)
 #--------------SEND DMCODE--------------
 async def send_dmcode(client_id: str, dmcode: DataMatrixCode):
     dmcode_public = dmcode.to_public_data_matrix_code()

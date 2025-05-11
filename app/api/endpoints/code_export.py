@@ -2,7 +2,7 @@ from app import crud, models
 from app.core.exceptions import EXC, ErrorCode
 from app.core.logging import logger
 from fastapi import Depends
-
+from datetime import timezone
 # from app.models import DataMatrixCodeCreate, DataMatrixCode, DataMatrixCodePublic, DataMatrixCodeProblem
 from app.models import Country
 # from app.models import GTIN, GTINPublic
@@ -65,6 +65,7 @@ async def get_gtin_dmcodes_by_date(*, is_exported: bool, gtin: str, date: str, d
     Получить все DataMatrix коды для определенного дня.
 
     Args:
+        is_exported (bool): Is exported flag
         gtin (str): Global Trade Item Number (GTIN), уникальный идентификатор продукта.
         date (str): Строка даты в формате "YYYY_MM_DD".
         db (AsyncSession): Асинхронная сессия базы данных.
@@ -97,52 +98,41 @@ async def export_dmcodes(
         db: AsyncSession = Depends(deps.get_db)
 ) -> list[models.DataMatrixCodeProblem]:
     problem_dm_codes: list[models.DataMatrixCodeProblem] = []
-    valid_codes: list[models.DataMatrixCode] = []
 
     # Получаем все уникальные DataMatrix коды из запроса
     dm_code_values: set[str] = set(dm_code.dm_code for dm_code in dm_codes)
 
-    # Получаем все уникальные DataMatrix коды
-    unique_dm_code_values = [models.DataMatrixCodeCreate(dm_code=dm_code) for dm_code in dm_code_values]
+    # Получаем все существующие DataMatrix коды из базы данных
+    existing_dm_codes = await crud.dmcode._get_existing_multi(db=db, dm_codes=list(dm_code_values))
+    existing_dm_code_list = [dm_code for dm_code, product in existing_dm_codes]
 
-    # Проверяем существование DataMatrix кодов в базе
-    existing_dm_codes = await crud.dmcode.get_existing_multi(db=db, dm_codes=list(dm_code_values))
-    existing_dm_code_values = [dm_code.dm_code for dm_code in existing_dm_codes]
+    for dm_code in existing_dm_code_list:
+        # parsed_code = models.DataMatrixCode.from_data_matrix_code_create(dm_code)
+        parsed_code = dm_code
 
-    for dm_code in unique_dm_code_values:
-        if dm_code.dm_code in existing_dm_code_values:
-            # Игнорируем уже существующие коды
-            continue
-
-            parsed_code = models.DataMatrixCode.from_data_matrix_code_create(dm_code)
-
-            if parsed_code is None:
+        if parsed_code is None:
+            problem_dm_codes.append(
+                models.DataMatrixCodeProblem(dm_code=dm_code.dm_code, problem='Error validating dm code'))
+        else:
+            # Проверяем существование GTIN
+            gtin = await crud.gtin.get_by_code(db=db, gtin=parsed_code.gtin)
+            if not gtin:
                 problem_dm_codes.append(
-                    models.DataMatrixCodeProblem(dm_code=dm_code.dm_code, problem='Error validating dm code'))
-            else:
-                # Проверяем существование GTIN
-                gtin = await crud.gtin.get_by_code(db=db, gtin=parsed_code.gtin)
-                if not gtin:
-                    problem_dm_codes.append(
-                        models.DataMatrixCodeProblem(dm_code=dm_code.dm_code, problem='GTIN does not exist'))
-                else:
-                    valid_codes.append(parsed_code)
+                    models.DataMatrixCodeProblem(dm_code=dm_code.dm_code, problem='GTIN does not exist'))
 
-        if valid_codes:
-            for valid_code in valid_codes:
-                try:
-                    dm_code_update = models.DataMatrixCodeUpdate(dm_code=valid_code.dm_code,
-                                                                 entry_time=valid_code.entry_time,
-                                                                 export_time=timezone_to_utc(dm_code_update.upload_time))
-                    await crud.dmcode.update(db=db, db_obj=valid_code, obj_in=dm_code_update)
-
-                # await crud.dmcode.create_multi(db=db, obj_in=valid_codes)
-                except Exception as e:
-
-                    problem_dm_codes.append(
-                        models.DataMatrixCodeProblem(dm_code=valid_code.dm_code, problem='Error updating dm code')
-                    )
-                    raise EXC(ErrorCode.DMCodeAddingError, details={'reason': str(e)})
+    # Обновляем существующие DataMatrix коды
+    for existing_dm_code in existing_dm_code_list:
+        try:
+            dm_code_update = models.DataMatrixCodeUpdate(
+                dm_code=existing_dm_code.dm_code,
+                export_time=datetime.now(timezone.utc)
+            )
+            await crud.dmcode.update(db=db, db_obj=existing_dm_code, obj_in=dm_code_update)
+        except Exception as e:
+            problem_dm_codes.append(
+                models.DataMatrixCodeProblem(dm_code=existing_dm_code.dm_code, problem='Error updating dm code')
+            )
+            logger.error(e)
 
     return problem_dm_codes
 
